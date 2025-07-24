@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workout Interval Timer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #2d3748; /* gray-800 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4a5568; /* gray-600 */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #718096; /* gray-500 */
+        }
+        .font-mono {
+            font-family: 'Courier New', Courier, monospace;
+        }
+        button, label.button-like, input[type="file"]::file-selector-button {
+            transition: all 0.15s ease-in-out;
+        }
+        .loader {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #3b82f6; /* blue-500 */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #videoPlayerContainer {
+            background-color: #000; /* Black background for video player */
+        }
+        #exerciseVideoPlayer.dimmed-video, #exerciseUrlPlayer.dimmed-video {
+            opacity: 0.6;
+        }
+        /* Styles for Drag and Drop */
+        .exercise-item {
+            cursor: grab;
+        }
+        .dragging {
+            opacity: 0.5;
+        }
+        .drag-over {
+            border-top: 2px solid #3b82f6; /* blue-500 */
+        }
+
+    </style>
+</head>
+<body class="bg-gray-800 text-gray-100 flex flex-col items-center min-h-screen p-4">
+
+    <div id="totalWorkoutTimerDisplay" class="fixed top-4 right-4 bg-gray-900 bg-opacity-80 text-white text-6xl font-mono p-4 rounded-lg shadow-lg z-50 backdrop-blur-sm">
+        Total: 00:00:00
+    </div>
+
+    <div id="loadingScreen" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex flex-col items-center justify-center z-50">
+        <div class="loader"></div>
+        <p class="ml-4 text-xl text-white mt-4">Loading App...</p>
+    </div>
+
+    <header class="w-full max-w-2xl mb-6 text-center">
+        <h1 class="text-4xl font-bold text-blue-400">Workout Interval Timer</h1>
+    </header>
+
+    <div id="timerSection" class="w-full max-w-md mb-6 p-6 bg-gray-700 rounded-xl shadow-2xl text-center hidden">
+        <h2 id="currentExerciseNameDisplay" class="text-3xl font-semibold text-yellow-400 mb-2">Workout Ready</h2>
+        <p id="timeLeftDisplay" class="text-7xl font-mono font-bold my-4 text-gray-300">00:00</p>
+        <p id="timerModeDisplay" class="text-xl uppercase tracking-wider mb-4">Idle</p>
+
+        <div class="w-full bg-gray-600 rounded-full h-3 mb-1">
+            <div id="intervalProgressBar" class="h-3 rounded-full bg-green-500" style="width: 0%;"></div>
+        </div>
+        <div id="overallProgressContainer" class="w-full bg-gray-600 rounded-full h-2 mb-4 flex overflow-hidden">
+            </div>
+
+        <div class="flex justify-center space-x-4">
+            <button id="startPauseResumeButton" class="px-8 py-3 rounded-lg font-semibold text-lg bg-green-500 hover:bg-green-600 text-gray-900 shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-700 focus:ring-green-400 flex items-center">
+                <svg id="playIcon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                <svg id="pauseIcon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                <span id="startPauseResumeText" class="ml-2">Start</span>
+            </button>
+            <button id="resetButton" class="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold text-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-700 focus:ring-red-500 flex items-center disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                <span class="ml-2">Reset</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="videoPlayerContainer" class="w-full max-w-6xl mb-8 bg-black p-3 rounded-xl shadow-xl hidden relative aspect-video">
+        <video id="exerciseVideoPlayer" class="w-full h-full rounded-lg hidden" controls muted>
+            Your browser does not support the video tag.
+        </video>
+        <iframe id="exerciseUrlPlayer" class="w-full h-full rounded-lg hidden" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        <div id="noVideoTextDisplay" class="absolute inset-0 flex items-center justify-center p-4 hidden bg-black rounded-lg">
+            <h3 class="text-4xl font-bold text-white text-center"></h3>
+        </div>
+        <p id="videoMessage" class="absolute bottom-4 left-4 text-white font-semibold"></p>
+    </div>
+
+
+    <div class="w-full max-w-md mb-8 p-6 bg-gray-700 rounded-xl shadow-xl">
+        <h3 id="formTitle" class="text-2xl font-semibold mb-4 text-blue-300">Add New Exercise</h3>
+        <input type="hidden" id="editingExerciseIdInput">
+        <div class="space-y-4">
+            <div>
+                <label for="exNameInput" class="block text-sm font-medium text-gray-300 mb-1">Exercise Name</label>
+                <input id="exNameInput" type="text" placeholder="e.g., Jumping Jacks" class="w-full p-3 bg-gray-600 border border-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors">
+            </div>
+            <div class="flex space-x-4">
+                <div class="flex-1">
+                    <label for="workTimeInput" class="block text-sm font-medium text-gray-300 mb-1">Work Time (sec)</label>
+                    <input id="workTimeInput" type="number" value="40" min="1" class="w-full p-3 bg-gray-600 border border-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors">
+                </div>
+                <div class="flex-1">
+                    <label for="restTimeInput" class="block text-sm font-medium text-gray-300 mb-1">Rest Time (sec)</label>
+                    <input id="restTimeInput" type="number" value="30" min="0" class="w-full p-3 bg-gray-600 border border-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors">
+                </div>
+            </div>
+            <div>
+                <label for="videoUrlInput" class="block text-sm font-medium text-gray-300 mb-1">Video URL (optional)</label>
+                <input id="videoUrlInput" type="text" placeholder="Direct, YouTube, or Google Drive Link" class="w-full p-3 bg-gray-600 border border-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors">
+            </div>
+            <div>
+                <label for="videoFileInput" class="block text-sm font-medium text-gray-300 mb-1">Or Select Local Video (optional)</label>
+                <input id="videoFileInput" type="file" accept="video/*" class="w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 bg-gray-600 border border-gray-500 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <p id="selectedVideoFileName" class="text-xs text-gray-400 mt-1"></p>
+            </div>
+            <div class="flex space-x-2">
+                <button id="addSaveButton" class="w-full mt-2 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-700 focus:ring-blue-500 flex items-center justify-center">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    <span id="addSaveButtonText">Add Exercise</span>
+                </button>
+                <button id="cancelEditButton" class="w-1/3 mt-2 py-3 px-4 bg-gray-500 hover:bg-gray-600 text-white font-semibold rounded-lg shadow-md hidden items-center justify-center">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="exerciseListSection" class="w-full max-w-md p-6 bg-gray-700 rounded-xl shadow-xl hidden">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-2xl font-semibold text-blue-300">Your Workout Plan</h3>
+        </div>
+        <div class="grid grid-cols-2 gap-2 mb-4">
+            <label for="importJsonInput" class="w-full py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-700 focus:ring-indigo-500 flex items-center justify-center button-like">
+                Import JSON
+            </label>
+            <button id="exportJsonButton" class="w-full py-2 px-3 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-700 focus:ring-green-500 flex items-center justify-center disabled:opacity-50" disabled>
+                Export JSON
+            </button>
+            <input type="file" id="importJsonInput" class="hidden" accept=".json,application/json">
+             <label for="importCsvInput" class="w-full py-2 px-3 bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold rounded-lg shadow-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-700 focus:ring-teal-500 flex items-center justify-center button-like">
+                Import CSV
+            </label>
+            <button id="exportCsvButton" class="w-full py-2 px-3 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-700 focus:ring-cyan-500 flex items-center justify-center disabled:opacity-50" disabled>
+                Export CSV
+            </button>
+            <input type="file" id="importCsvInput" class="hidden" accept=".csv,text/csv">
+        </div>
+        <ul id="exerciseList" class="space-y-3">
+            </ul>
+        <p id="noExercisesText" class="text-gray-400">No exercises added yet. Add some above or import a JSON/CSV file!</p>
+    </div>
+    
+    <footer class="w-full max-w-2xl mt-10 text-center text-sm text-gray-500">
+        <p>Tip: Work and Rest times are in seconds.</p>
+        <p class="mt-1 text-xs">Place local `beep.mp3` in a 'videos' subfolder.</p>
+        <p class="mt-1 text-xs">CSV Format: Name, WorkTime, RestTime, VideoURL (optional, no header row).</p>
+    </footer>
+
+    <audio id="beepSound" src="videos/beep.mp3" preload="auto"></audio>
+
+    <div id="customAlertModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-700 p-6 rounded-lg shadow-xl w-full max-w-sm text-center">
+            <p id="customAlertMessage" class="text-lg text-gray-100 mb-4"></p>
+            <button id="customAlertCloseButton" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md">OK</button>
+        </div>
+    </div>
+
+    <script type="module">
+        // --- DOM Elements ---
+        const totalWorkoutTimerDisplay = document.getElementById('totalWorkoutTimerDisplay');
+        const loadingScreen = document.getElementById('loadingScreen');
+        const timerSection = document.getElementById('timerSection');
+        const currentExerciseNameDisplay = document.getElementById('currentExerciseNameDisplay');
+        const timeLeftDisplay = document.getElementById('timeLeftDisplay');
+        const timerModeDisplay = document.getElementById('timerModeDisplay');
+        const intervalProgressBar = document.getElementById('intervalProgressBar');
+        const overallProgressContainer = document.getElementById('overallProgressContainer');
+        const startPauseResumeButton = document.getElementById('startPauseResumeButton');
+        const startPauseResumeText = document.getElementById('startPauseResumeText');
+        const playIcon = document.getElementById('playIcon');
+        const pauseIcon = document.getElementById('pauseIcon');
+        const resetButton = document.getElementById('resetButton');
+
+        const videoPlayerContainer = document.getElementById('videoPlayerContainer'); 
+        const exerciseVideoPlayer = document.getElementById('exerciseVideoPlayer'); 
+        const exerciseUrlPlayer = document.getElementById('exerciseUrlPlayer');
+        const noVideoTextDisplay = document.getElementById('noVideoTextDisplay');
+        const videoMessage = document.getElementById('videoMessage'); 
+        
+        const formTitle = document.getElementById('formTitle');
+        const editingExerciseIdInput = document.getElementById('editingExerciseIdInput');
+        const exNameInput = document.getElementById('exNameInput');
+        const workTimeInput = document.getElementById('workTimeInput'); 
+        const restTimeInput = document.getElementById('restTimeInput'); 
+        const videoUrlInput = document.getElementById('videoUrlInput');
+        const videoFileInput = document.getElementById('videoFileInput');
+        const selectedVideoFileName = document.getElementById('selectedVideoFileName');
+        
+        const addSaveButton = document.getElementById('addSaveButton');
+        const addSaveButtonText = document.getElementById('addSaveButtonText');
+        const cancelEditButton = document.getElementById('cancelEditButton');
+        
+        const exerciseList = document.getElementById('exerciseList');
+        const exerciseListSection = document.getElementById('exerciseListSection');
+        const noExercisesText = document.getElementById('noExercisesText');
+        const exportJsonButton = document.getElementById('exportJsonButton'); 
+        const importJsonInput = document.getElementById('importJsonInput'); 
+        const importCsvInput = document.getElementById('importCsvInput');
+        const exportCsvButton = document.getElementById('exportCsvButton');
+        const beepSound = document.getElementById('beepSound');
+
+        const customAlertModal = document.getElementById('customAlertModal');
+        const customAlertMessage = document.getElementById('customAlertMessage');
+        const customAlertCloseButton = document.getElementById('customAlertCloseButton');
+
+        // --- Application State ---
+        let exercises = []; 
+        let currentExerciseIndex = 0;
+        let timeLeft = 0;
+        let totalTimeRemaining = 0;
+        let timerMode = 'idle'; 
+        let prePauseTimerMode = 'work'; 
+        let isWorkoutActive = false; 
+        let timerIntervalRef = null;
+        let currentSelectedFile = null;
+        let draggedItemId = null;
+
+        // --- Custom Alert ---
+        function showAlert(message) {
+            customAlertMessage.textContent = message;
+            customAlertModal.classList.remove('hidden');
+        }
+        customAlertCloseButton.addEventListener('click', () => {
+            customAlertModal.classList.add('hidden');
+        });
+
+        // --- Helper Functions ---
+        function calculateTotalWorkoutTime() {
+            return exercises.reduce((acc, ex) => acc + ex.workTime + ex.restTime, 0);
+        }
+
+        function formatTimeWithHours(totalSeconds) {
+            if (isNaN(totalSeconds) || totalSeconds < 0) {
+                totalSeconds = 0;
+            }
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        function updateTotalTimeDisplay() {
+            totalWorkoutTimerDisplay.textContent = `Total: ${formatTimeWithHours(totalTimeRemaining)}`;
+        }
+
+        function getExerciseColor(exercise) {
+            if (!exercise || !exercise.name) return 'bg-purple-500'; // Default color
+            const name = exercise.name.toLowerCase().replace(/-/g, ' ').trim();
+            if (name === 'warm up') return 'bg-blue-500';
+            if (name === 'cool down') return 'bg-orange-500';
+            return 'bg-purple-500'; // Normal exercise color
+        }
+
+        function isSpecialExercise(exercise) {
+            if (!exercise || !exercise.name) return false;
+            const name = exercise.name.toLowerCase().replace(/-/g, ' ').trim();
+            return name === 'warm up' || name === 'cool down';
+        }
+
+        const getYoutubeEmbedUrl = (url) => {
+            let videoId = null;
+            const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+            const match = url.match(youtubeRegex);
+            if (match && match[1]) {
+                videoId = match[1];
+                return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}`;
+            }
+            return null;
+        };
+
+        const getGoogleDriveEmbedUrl = (url) => {
+            const driveRegex = /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/;
+            const match = url.match(driveRegex);
+            if (match && match[1]) {
+                const fileId = match[1];
+                return `https://drive.google.com/uc?export=view&id=${fileId}`;
+            }
+            return null;
+        }
+
+        const isDirectVideoUrl = (url) => {
+             if (typeof url !== 'string' || !url) return false;
+             return url.match(/\.(mp4|webm|ogv|mov)$/i) != null;
+        }
+
+
+        // --- Video Player Logic ---
+        function updateVideoPlayerDisplay() {
+            const currentEx = exercises[currentExerciseIndex];
+            
+            exerciseVideoPlayer.classList.add('hidden');
+            exerciseUrlPlayer.classList.add('hidden');
+            noVideoTextDisplay.classList.add('hidden');
+            
+            exerciseVideoPlayer.classList.remove('dimmed-video');
+            exerciseUrlPlayer.classList.remove('dimmed-video');
+            videoMessage.classList.remove('text-2xl');
+
+            if (isWorkoutActive) {
+                videoPlayerContainer.classList.remove('hidden');
+                
+                let exForDisplay = null;
+                let isPreview = false;
+
+                if (timerMode === 'work') {
+                    exForDisplay = currentEx;
+                    isPreview = false;
+                } else if (timerMode === 'rest') {
+                    const nextIndex = currentExerciseIndex + 1;
+                    if (nextIndex < exercises.length) {
+                        exForDisplay = exercises[nextIndex];
+                        isPreview = true;
+                    } else {
+                        noVideoTextDisplay.classList.remove('hidden');
+                        noVideoTextDisplay.querySelector('h3').textContent = 'Workout Complete!';
+                        videoMessage.textContent = "Last Rest";
+                        return;
+                    }
+                } else if (timerMode === 'paused') {
+                    exForDisplay = (prePauseTimerMode === 'work') ? currentEx : exercises[currentExerciseIndex + 1];
+                    isPreview = prePauseTimerMode === 'rest';
+                }
+
+                if (!exForDisplay) {
+                     videoPlayerContainer.classList.add('hidden');
+                     return;
+                }
+
+                const url = exForDisplay.videoUrl;
+                let embedUrl = null;
+
+                if (url) {
+                    embedUrl = getYoutubeEmbedUrl(url) || getGoogleDriveEmbedUrl(url);
+                }
+                
+                if (embedUrl) { // YouTube or Google Drive
+                    exerciseUrlPlayer.classList.remove('hidden');
+                    if (isPreview) exerciseUrlPlayer.classList.add('dimmed-video');
+                    if (exerciseUrlPlayer.src !== embedUrl) {
+                        exerciseUrlPlayer.src = embedUrl;
+                    }
+                    if (timerMode !== 'paused') videoMessage.textContent = isPreview ? `Next: ${exForDisplay.name}` : '';
+                } else if (url) { // Direct video link or local file reference
+                    exerciseVideoPlayer.classList.remove('hidden');
+                    if (isPreview) exerciseVideoPlayer.classList.add('dimmed-video');
+                    
+                    try {
+                        const videoSrc = isDirectVideoUrl(url) ? url : `videos/${url}`;
+                        const absoluteUrl = new URL(videoSrc, window.location.href).href;
+
+                        if (exerciseVideoPlayer.src !== absoluteUrl) {
+                            exerciseVideoPlayer.src = absoluteUrl;
+                            exerciseVideoPlayer.load();
+                        }
+                        if (timerMode !== 'paused') {
+                            videoMessage.textContent = isPreview ? `Next: ${exForDisplay.name}` : '';
+                            exerciseVideoPlayer.play().catch(e => console.warn("Autoplay blocked"));
+                        }
+                    } catch (e) {
+                        console.error(`Failed to construct URL for video: "${url}". Error: ${e.message}`);
+                        exerciseVideoPlayer.classList.add('hidden');
+                        noVideoTextDisplay.classList.remove('hidden');
+                        noVideoTextDisplay.querySelector('h3').textContent = exForDisplay.name;
+                        videoMessage.textContent = isPreview ? `Next Up (Invalid Video URL)` : '';
+                    }
+                } else { // No video
+                    noVideoTextDisplay.classList.remove('hidden');
+                    noVideoTextDisplay.querySelector('h3').textContent = exForDisplay.name;
+                    videoMessage.textContent = isPreview ? `Next Up (No Video)` : '';
+                }
+
+                if(timerMode === 'paused') {
+                    exerciseVideoPlayer.pause();
+                    exerciseUrlPlayer.src = '';
+                }
+
+            } else { // Workout not active
+                videoPlayerContainer.classList.add('hidden');
+                exerciseVideoPlayer.pause();
+                exerciseUrlPlayer.src = '';
+            }
+        }
+
+
+        // --- UI Rendering & Updates ---
+        function renderExerciseList() {
+            exerciseList.innerHTML = ''; 
+            if (exercises.length === 0) {
+                noExercisesText.classList.remove('hidden');
+                exportJsonButton.disabled = true;
+                exportJsonButton.classList.add('disabled:opacity-50');
+                exportCsvButton.disabled = true;
+                exportCsvButton.classList.add('disabled:opacity-50');
+            } else {
+                noExercisesText.classList.add('hidden');
+                exerciseListSection.classList.remove('hidden'); 
+                exportJsonButton.disabled = false;
+                exportJsonButton.classList.remove('disabled:opacity-50');
+                exportCsvButton.disabled = false;
+                exportCsvButton.classList.remove('disabled:opacity-50');
+            }
+            if (exercises.length > 0 || isWorkoutActive || timerMode !== 'idle') {
+                timerSection.classList.remove('hidden');
+            } else {
+                timerSection.classList.add('hidden');
+            }
+
+            exercises.forEach((ex, index) => {
+                const li = document.createElement('li');
+                li.className = `p-4 rounded-lg shadow transition-all duration-200 exercise-item ${isWorkoutActive && index === currentExerciseIndex ? 'bg-yellow-600 scale-105 ring-2 ring-yellow-400' : 'bg-gray-600'}`;
+                li.setAttribute('draggable', 'true');
+                li.dataset.id = ex.id; 
+
+                let videoInfoHtml = '';
+                if (ex.videoUrl) {
+                    videoInfoHtml = `<p class="text-xs text-gray-400 mt-1 pointer-events-none truncate">Video: ${ex.videoUrl}</p>`;
+                }
+                li.innerHTML = `
+                    <div class="flex justify-between items-center pointer-events-none">
+                        <div>
+                            <p class="text-lg font-medium text-gray-100">${index + 1}. ${ex.name}</p>
+                            <p class="text-sm text-gray-300">
+                                Work: <span class="font-semibold text-green-400">${ex.workTime}s</span> |
+                                Rest: <span class="font-semibold text-blue-400">${ex.restTime}s</span>
+                            </p>
+                            ${videoInfoHtml}
+                        </div>
+                        <div class="flex space-x-2 pointer-events-auto">
+                            <button data-id="${ex.id}" class="edit-btn p-2 text-blue-400 hover:text-blue-300" title="Edit Exercise">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                            </button>
+                            <button data-id="${ex.id}" class="delete-btn p-2 text-red-400 hover:text-red-300" title="Delete Exercise">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                exerciseList.appendChild(li);
+            });
+
+            addDragAndDropListeners();
+            
+            if (exercises.length > 0 || !exerciseListSection.classList.contains('hidden')) {
+                 exerciseListSection.classList.remove('hidden');
+            }
+        }
+        
+        function formatTime(totalSeconds) {
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+        
+        function renderOverallProgress() {
+            overallProgressContainer.innerHTML = ''; // Clear current segments
+
+            const totalWorkoutTime = calculateTotalWorkoutTime();
+            if (totalWorkoutTime === 0) return;
+
+            // Render completed exercises as full segments
+            for (let i = 0; i < currentExerciseIndex; i++) {
+                const ex = exercises[i];
+                const segment = document.createElement('div');
+                segment.className = `h-full ${getExerciseColor(ex)}`;
+                const segmentWidth = ((ex.workTime + ex.restTime) / totalWorkoutTime) * 100;
+                segment.style.width = `${segmentWidth}%`;
+                overallProgressContainer.appendChild(segment);
+            }
+
+            // Render the current, in-progress exercise segment
+            const currentEx = exercises[currentExerciseIndex];
+            if (!currentEx || !isWorkoutActive || timerMode === 'idle') return;
+
+            const effectiveTimerMode = timerMode === 'paused' ? prePauseTimerMode : timerMode;
+            let timeElapsedInCurrentEx = 0;
+            if (effectiveTimerMode === 'work') {
+                timeElapsedInCurrentEx = currentEx.workTime - timeLeft;
+            } else if (effectiveTimerMode === 'rest') {
+                timeElapsedInCurrentEx = currentEx.workTime + (currentEx.restTime - timeLeft);
+            }
+
+            if (timeElapsedInCurrentEx > 0) {
+                const currentSegmentWidth = (timeElapsedInCurrentEx / totalWorkoutTime) * 100;
+                const segment = document.createElement('div');
+                segment.className = `h-full ${getExerciseColor(currentEx)}`;
+                segment.style.width = `${currentSegmentWidth}%`;
+                overallProgressContainer.appendChild(segment);
+            }
+        }
+
+        function updateTimerDisplay() {
+            if (exercises.length === 0 && timerMode === 'idle' && !isWorkoutActive) {
+                currentExerciseNameDisplay.textContent = "Workout Ready";
+                timeLeftDisplay.textContent = formatTime(0);
+                timerModeDisplay.textContent = "Idle";
+                timeLeftDisplay.className = "text-7xl font-mono font-bold my-4 text-gray-300";
+                intervalProgressBar.style.width = '0%';
+                resetButton.disabled = true;
+                startPauseResumeButton.classList.replace('bg-yellow-500', 'bg-green-500');
+                startPauseResumeButton.classList.replace('hover:bg-yellow-600', 'hover:bg-green-600');
+                startPauseResumeButton.disabled = true; 
+                timerSection.classList.add('hidden'); 
+            } else {
+                timerSection.classList.remove('hidden'); 
+            }
+            
+
+            const currentEx = exercises[currentExerciseIndex];
+            
+            if (timerMode === 'rest') {
+                const nextExerciseIndex = currentExerciseIndex + 1;
+                if (nextExerciseIndex < exercises.length) {
+                    currentExerciseNameDisplay.textContent = `Next: ${exercises[nextExerciseIndex].name}`;
+                } else {
+                    currentExerciseNameDisplay.textContent = "Final Rest";
+                }
+            } else {
+                currentExerciseNameDisplay.textContent = currentEx ? currentEx.name : "Workout Ready";
+            }
+            
+            timeLeftDisplay.textContent = formatTime(timeLeft);
+            timerModeDisplay.textContent = timerMode === 'paused' ? 'Paused' : timerMode.charAt(0).toUpperCase() + timerMode.slice(1);
+
+            if (timerMode === 'work') {
+                timeLeftDisplay.className = "text-7xl font-mono font-bold my-4 text-green-400";
+                intervalProgressBar.className = "h-3 rounded-full bg-green-500";
+                if (currentEx && currentEx.workTime > 0) intervalProgressBar.style.width = `${((currentEx.workTime - timeLeft) / currentEx.workTime) * 100}%`; else intervalProgressBar.style.width = '0%';
+            } else if (timerMode === 'rest') {
+                timeLeftDisplay.className = "text-7xl font-mono font-bold my-4 text-blue-400";
+                intervalProgressBar.className = "h-3 rounded-full bg-blue-500";
+                if (currentEx && currentEx.restTime > 0) intervalProgressBar.style.width = `${((currentEx.restTime - timeLeft) / currentEx.restTime) * 100}%`; else intervalProgressBar.style.width = '0%';
+            } else { 
+                timeLeftDisplay.className = "text-7xl font-mono font-bold my-4 text-gray-300";
+                if (timerMode === 'paused' && currentEx) { 
+                    if (prePauseTimerMode === 'work' && currentEx.workTime > 0) {
+                         intervalProgressBar.style.width = `${((currentEx.workTime - timeLeft) / currentEx.workTime) * 100}%`;
+                         intervalProgressBar.className = "h-3 rounded-full bg-green-500";
+                    } else if (prePauseTimerMode === 'rest' && currentEx.restTime > 0) {
+                         intervalProgressBar.style.width = `${((currentEx.restTime - timeLeft) / currentEx.restTime) * 100}%`;
+                         intervalProgressBar.className = "h-3 rounded-full bg-blue-500";
+                    } else {
+                        intervalProgressBar.style.width = '0%';
+                    }
+                } else {
+                     intervalProgressBar.style.width = '0%';
+                }
+            }
+            
+            renderOverallProgress();
+            updateTotalTimeDisplay();
+
+            if (isWorkoutActive && timerMode !== 'paused' && timerMode !== 'idle') { 
+                startPauseResumeText.textContent = 'Pause';
+                playIcon.classList.add('hidden');
+                pauseIcon.classList.remove('hidden');
+                startPauseResumeButton.classList.replace('bg-green-500', 'bg-yellow-500');
+                startPauseResumeButton.classList.replace('hover:bg-green-600', 'hover:bg-yellow-600');
+                resetButton.disabled = false;
+            } else if (timerMode === 'paused') { 
+                startPauseResumeText.textContent = 'Resume';
+                playIcon.classList.remove('hidden');
+                pauseIcon.classList.add('hidden');
+                startPauseResumeButton.classList.replace('bg-yellow-500', 'bg-green-500');
+                startPauseResumeButton.classList.replace('hover:bg-yellow-600', 'hover:bg-green-600');
+                resetButton.disabled = false;
+            } else { 
+                startPauseResumeText.textContent = 'Start';
+                playIcon.classList.remove('hidden');
+                pauseIcon.classList.add('hidden');
+                startPauseResumeButton.classList.replace('bg-yellow-500', 'bg-green-500');
+                startPauseResumeButton.classList.replace('hover:bg-yellow-600', 'hover:bg-green-600');
+                resetButton.disabled = exercises.length === 0 || (timeLeft === (exercises[0]?.workTime || 0) && !isWorkoutActive);
+            }
+            startPauseResumeButton.disabled = exercises.length === 0;
+            updateVideoPlayerDisplay(); 
+        }
+
+
+        // --- Exercise Management ---
+        videoFileInput.addEventListener('change', (event) => {
+            currentSelectedFile = event.target.files[0];
+            if (currentSelectedFile) {
+                selectedVideoFileName.textContent = `Selected: ${currentSelectedFile.name}`;
+            } else {
+                selectedVideoFileName.textContent = '';
+            }
+        });
+
+        function handleAddOrSaveExercise(event) {
+            event.preventDefault();
+            const name = exNameInput.value.trim();
+            const workTime = parseInt(workTimeInput.value, 10);
+            const restTime = parseInt(restTimeInput.value, 10);
+            const editingId = editingExerciseIdInput.value;
+            let videoUrl = videoUrlInput.value.trim();
+
+            if (!videoUrl && currentSelectedFile) {
+                videoUrl = currentSelectedFile.name;
+            }
+
+            if (!name || workTime <= 0 || restTime < 0) {
+                showAlert("Please enter a valid exercise name, and positive work/rest times (rest can be 0).");
+                return;
+            }
+
+            if (editingId) { 
+                exercises = exercises.map(ex => 
+                    ex.id === editingId ? { ...ex, name, workTime, restTime, videoUrl } : ex
+                );
+            } else { 
+                const newExercise = { id: crypto.randomUUID(), name, workTime, restTime, videoUrl };
+                exercises.push(newExercise);
+            }
+            
+            renderExerciseList();
+            if (timerMode === 'idle' && !isWorkoutActive) resetTimer(); 
+            else updateTimerDisplay();
+
+            editingExerciseIdInput.value = ''; 
+            formTitle.textContent = 'Add New Exercise';
+            addSaveButtonText.textContent = 'Add Exercise';
+            cancelEditButton.classList.add('hidden');
+            exNameInput.value = '';
+            workTimeInput.value = '40'; 
+            restTimeInput.value = '30'; 
+            videoUrlInput.value = '';
+            videoFileInput.value = '';
+            selectedVideoFileName.textContent = '';
+            currentSelectedFile = null;
+        }
+
+        function handleStartEditExercise(event) {
+            event.stopPropagation(); 
+            const exerciseId = event.currentTarget.dataset.id;
+            const exerciseToEdit = exercises.find(ex => ex.id === exerciseId);
+            if (exerciseToEdit) {
+                editingExerciseIdInput.value = exerciseToEdit.id;
+                exNameInput.value = exerciseToEdit.name;
+                workTimeInput.value = exerciseToEdit.workTime;
+                restTimeInput.value = exerciseToEdit.restTime;
+                videoUrlInput.value = exerciseToEdit.videoUrl || '';
+                videoFileInput.value = '';
+                selectedVideoFileName.textContent = '';
+                currentSelectedFile = null;
+
+                formTitle.textContent = 'Edit Exercise';
+                addSaveButtonText.textContent = 'Save Changes';
+                cancelEditButton.classList.remove('hidden');
+                exNameInput.focus();
+            }
+        }
+        
+        function cancelEdit() {
+            editingExerciseIdInput.value = '';
+            exNameInput.value = '';
+            workTimeInput.value = '40'; 
+            restTimeInput.value = '30'; 
+            videoUrlInput.value = '';
+            videoFileInput.value = '';
+            selectedVideoFileName.textContent = '';
+            currentSelectedFile = null;
+            formTitle.textContent = 'Add New Exercise';
+            addSaveButtonText.textContent = 'Add Exercise';
+            cancelEditButton.classList.add('hidden');
+        }
+
+        function handleDeleteExercise(event) {
+            event.stopPropagation(); 
+            const exerciseId = event.currentTarget.dataset.id;
+            const oldCurrentExerciseId = isWorkoutActive ? exercises[currentExerciseIndex]?.id : null;
+            
+            exercises = exercises.filter(ex => ex.id !== exerciseId);
+            
+            renderExerciseList();
+
+            if (isWorkoutActive && oldCurrentExerciseId === exerciseId) {
+                resetTimer(); 
+            } else if (exercises.length === 0) {
+                resetTimer();
+            } else {
+                 if (timerMode === 'idle' && !isWorkoutActive) resetTimer(); 
+                 else updateTimerDisplay(); 
+            }
+        }
+
+        // --- Timer Logic ---
+        function timerTick() {
+            if (timeLeft <= 0) {
+                clearInterval(timerIntervalRef);
+                timerIntervalRef = null;
+                
+                const currentEx = exercises[currentExerciseIndex];
+                if (currentEx) {
+                    const intervalDuration = timerMode === 'work' ? currentEx.workTime : currentEx.restTime;
+                    if (intervalDuration >= 5) {
+                        beepSound.play().catch(error => console.error("Audio playback failed:", error));
+                    }
+                }
+
+                if (!currentEx && isWorkoutActive) { 
+                    console.warn("Current exercise undefined during tick, resetting.");
+                    resetTimer();
+                    return;
+                }
+
+                let nextStateDetermined = false;
+
+                if (timerMode === 'work') {
+                    if (currentEx.restTime > 0) {
+                        timerMode = 'rest';
+                        timeLeft = currentEx.restTime;
+                        nextStateDetermined = true;
+                    }
+                }
+                
+                if (!nextStateDetermined) { 
+                    currentExerciseIndex++;
+                    if (currentExerciseIndex < exercises.length) {
+                        const nextEx = exercises[currentExerciseIndex];
+                        timerMode = 'work';
+                        if (isSpecialExercise(nextEx)) {
+                            timeLeft = 0; 
+                        } else {
+                            timeLeft = nextEx.workTime;
+                        }
+                    } else {
+                        isWorkoutActive = false;
+                        timerMode = 'idle';
+                        showAlert("Workout Complete!");
+                    }
+                }
+                
+                renderExerciseList();
+                updateTimerDisplay();
+
+                if (isWorkoutActive && timerMode !== 'idle' && timerMode !== 'paused') {
+                     timerIntervalRef = setInterval(timerTick, 1000);
+                }
+                return;
+            }
+            
+            if (timeLeft > 0) {
+                 timeLeft--;
+            }
+            if (isWorkoutActive && totalTimeRemaining > 0) {
+                totalTimeRemaining--;
+            }
+            
+            renderExerciseList(); 
+            updateTimerDisplay(); 
+        }
+
+        function toggleTimerAction() {
+            if (exercises.length === 0) {
+                showAlert("Please add exercises to start a workout.");
+                return;
+            }
+
+            if (timerMode === 'idle' && !isWorkoutActive) { 
+                isWorkoutActive = true;
+                currentExerciseIndex = 0;
+                timerMode = 'work';
+                totalTimeRemaining = calculateTotalWorkoutTime();
+                
+                const firstEx = exercises[0];
+                if (!firstEx) { resetTimer(); return; }
+
+                if (isSpecialExercise(firstEx)) {
+                    timeLeft = 0; 
+                } else {
+                    timeLeft = firstEx.workTime;
+                }
+                
+                if (timerIntervalRef) clearInterval(timerIntervalRef);
+                updateTimerDisplay();
+                timerIntervalRef = setInterval(timerTick, 1000);
+            } else if (timerMode === 'paused') { 
+                timerMode = prePauseTimerMode; 
+                if (timerIntervalRef) clearInterval(timerIntervalRef);
+                if (timeLeft > 0 || totalTimeRemaining > 0) {
+                    updateTimerDisplay();
+                    timerIntervalRef = setInterval(timerTick, 1000); 
+                } else { 
+                    timerTick(); 
+                }
+            } else { 
+                prePauseTimerMode = timerMode; 
+                timerMode = 'paused';
+                clearInterval(timerIntervalRef);
+                timerIntervalRef = null;
+                updateTimerDisplay();
+            }
+        }
+
+        function resetTimer() {
+            clearInterval(timerIntervalRef);
+            timerIntervalRef = null;
+            isWorkoutActive = false;
+            timerMode = 'idle';
+            currentExerciseIndex = 0;
+            if (exercises.length > 0 && exercises[0]) {
+                timeLeft = exercises[0].workTime;
+            } else {
+                timeLeft = 0;
+            }
+            totalTimeRemaining = calculateTotalWorkoutTime();
+            renderExerciseList(); 
+            updateTimerDisplay(); 
+        }
+        
+        // --- Data Import/Export ---
+        function handleExportToJson() {
+            if (exercises.length === 0) {
+                showAlert("No exercises to export.");
+                return;
+            }
+            const exercisesToExport = exercises.map(({id, name, workTime, restTime, videoUrl}) => ({id, name, workTime, restTime, videoUrl}));
+
+            const jsonData = JSON.stringify(exercisesToExport, null, 2); 
+            const blob = new Blob([jsonData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'workout_exercises.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showAlert("Exercises exported to workout_exercises.json");
+        }
+
+        function handleImportJson(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (Array.isArray(importedData) && importedData.every(item => 
+                        typeof item === 'object' && item !== null &&
+                        'id' in item && 'name' in item && 'workTime' in item && 'restTime' in item
+                    )) {
+                        exercises = importedData.map(ex => ({...ex, videoUrl: ex.videoUrl || null}));
+                        renderExerciseList();
+                        resetTimer(); 
+                        showAlert("Exercises imported successfully!");
+                    } else {
+                        showAlert("Invalid JSON file format.");
+                    }
+                } catch (error) {
+                    console.error("Error parsing JSON:", error);
+                    showAlert("Error reading or parsing JSON file.");
+                } finally {
+                    importJsonInput.value = '';
+                }
+            };
+            reader.onerror = () => {
+                showAlert("Error reading file.");
+                importJsonInput.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        function handleImportCsv(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target.result;
+                const newExercises = [];
+                const rows = text.split('\n').filter(row => row.trim() !== '');
+
+                try {
+                    for (const row of rows) {
+                        const columns = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
+                        if (columns.length < 3) {
+                            throw new Error(`Invalid row found: "${row}". Each row must have at least 3 columns.`);
+                        }
+
+                        const unescape = (field) => field.startsWith('"') && field.endsWith('"') ? field.slice(1, -1).replace(/""/g, '"') : field;
+
+                        const name = unescape(columns[0]);
+                        const workTime = parseInt(columns[1], 10);
+                        const restTime = parseInt(columns[2], 10);
+                        const videoUrl = columns.length > 3 ? unescape(columns[3]) : null;
+
+                        if (!name || isNaN(workTime) || isNaN(restTime) || workTime <= 0 || restTime < 0) {
+                            throw new Error(`Invalid data in row: "${row}". Check exercise name and times.`);
+                        }
+
+                        newExercises.push({
+                            id: crypto.randomUUID(),
+                            name: name,
+                            workTime: workTime,
+                            restTime: restTime,
+                            videoUrl: videoUrl
+                        });
+                    }
+
+                    exercises = newExercises;
+                    renderExerciseList();
+                    resetTimer();
+                    showAlert("Exercises imported successfully from CSV!");
+                } catch (error) {
+                    console.error("Error parsing CSV:", error);
+                    showAlert(`Error parsing CSV file: ${error.message}`);
+                } finally {
+                    importCsvInput.value = '';
+                }
+            };
+            reader.onerror = () => {
+                showAlert("Error reading file.");
+                importCsvInput.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        function handleExportCsv() {
+            if (exercises.length === 0) {
+                showAlert("No exercises to export.");
+                return;
+            }
+
+            const csvRows = [];
+            for (const ex of exercises) {
+                const escapeCsvField = (field) => {
+                    const stringField = String(field || '');
+                    if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
+                        return `"${stringField.replace(/"/g, '""')}"`;
+                    }
+                    return stringField;
+                };
+
+                const row = [
+                    escapeCsvField(ex.name),
+                    ex.workTime,
+                    ex.restTime,
+                    escapeCsvField(ex.videoUrl)
+                ];
+                csvRows.push(row.join(','));
+            }
+
+            const csvContent = csvRows.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'workout_exercises.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showAlert("Exercises exported to workout_exercises.csv");
+        }
+        
+        // --- Drag and Drop Logic ---
+        function addDragAndDropListeners() {
+            const listItems = document.querySelectorAll('#exerciseList .exercise-item');
+            
+            listItems.forEach(item => {
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragend', handleDragEnd);
+                item.addEventListener('dragover', handleDragOver);
+                item.addEventListener('dragleave', handleDragLeave);
+                item.addEventListener('drop', handleDrop);
+                item.addEventListener('dragenter', (e) => e.preventDefault());
+            });
+        }
+        
+        function handleDragStart(e) {
+            draggedItemId = e.target.dataset.id;
+            e.target.classList.add('dragging');
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            draggedItemId = null;
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault(); 
+            const targetItem = e.target.closest('.exercise-item');
+            if (targetItem && targetItem.dataset.id !== draggedItemId) {
+                document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                targetItem.classList.add('drag-over');
+            }
+        }
+
+        function handleDragLeave(e) {
+            const targetItem = e.target.closest('.exercise-item');
+            if (targetItem) {
+                targetItem.classList.remove('drag-over');
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const dropTargetItem = e.target.closest('.exercise-item');
+            if (!dropTargetItem || !draggedItemId || dropTargetItem.dataset.id === draggedItemId) {
+                return;
+            }
+
+            const draggedIndex = exercises.findIndex(ex => ex.id === draggedItemId);
+            const dropIndex = exercises.findIndex(ex => ex.id === dropTargetItem.dataset.id);
+            
+            const [draggedItem] = exercises.splice(draggedIndex, 1);
+            exercises.splice(dropIndex, 0, draggedItem);
+
+            renderExerciseList();
+            if (!isWorkoutActive) {
+                resetTimer();
+            }
+        }
+
+
+        // --- Initial Setup & Event Listeners ---
+        document.addEventListener('DOMContentLoaded', () => {
+            workTimeInput.value = '40';
+            restTimeInput.value = '30';
+
+            resetButton.disabled = true; 
+            startPauseResumeButton.disabled = true; 
+            exportJsonButton.disabled = true;
+            exportJsonButton.classList.add('disabled:opacity-50');
+            exportCsvButton.disabled = true;
+            exportCsvButton.classList.add('disabled:opacity-50');
+
+            addSaveButton.addEventListener('click', handleAddOrSaveExercise);
+            cancelEditButton.addEventListener('click', cancelEdit);
+            startPauseResumeButton.addEventListener('click', toggleTimerAction);
+            resetButton.addEventListener('click', resetTimer);
+            exportJsonButton.addEventListener('click', handleExportToJson); 
+            importJsonInput.addEventListener('change', handleImportJson);
+            importCsvInput.addEventListener('change', handleImportCsv);
+            exportCsvButton.addEventListener('click', handleExportCsv); 
+
+            exerciseList.addEventListener('click', function(event) {
+                if (event.target.closest('.edit-btn')) {
+                    handleStartEditExercise(event);
+                } else if (event.target.closest('.delete-btn')) {
+                    handleDeleteExercise(event);
+                }
+            });
+            
+            resetTimer(); // Initial calculation for total time
+
+            loadingScreen.classList.add('hidden'); 
+            exerciseListSection.classList.remove('hidden'); 
+        });
+
+    </script>
+</body>
+</html>
