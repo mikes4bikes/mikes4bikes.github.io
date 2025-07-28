@@ -56,13 +56,43 @@
         .drag-over {
             border-top: 2px solid #3b82f6; /* blue-500 */
         }
+        /* Toggle Switch CSS */
+        #cameraToggle:checked + .dot {
+            transform: translateX(100%);
+            background-color: #48bb78; /* green-500 */
+        }
+        #cameraToggle:checked ~ .block {
+             background-color: #a0aec0; /* gray-400 */
+        }
 
     </style>
 </head>
 <body class="bg-gray-800 text-gray-100 flex flex-col items-center min-h-screen p-4">
+    
+    <div class="fixed top-4 left-4 z-50 flex flex-col items-center space-y-2">
+        <div id="cameraFeedContainer" class="shadow-lg rounded-lg overflow-hidden w-80 h-60 bg-black">
+            <video id="cameraFeed" class="w-full h-full object-cover hidden" autoplay playsinline muted></video>
+            <div id="cameraError" class="hidden w-full h-full bg-gray-700 text-white flex items-center justify-center p-2 text-center text-sm">
+                Camera access denied or not available.
+            </div>
+        </div>
+        <label for="cameraToggle" class="flex items-center cursor-pointer">
+            <span class="mr-2 text-sm text-gray-300">Camera</span>
+            <div class="relative">
+                <input type="checkbox" id="cameraToggle" class="sr-only">
+                <div class="block bg-gray-600 w-10 h-6 rounded-full"></div>
+                <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition"></div>
+            </div>
+        </label>
+    </div>
 
-    <div id="totalWorkoutTimerDisplay" class="fixed top-4 right-4 bg-gray-900 bg-opacity-80 text-white text-6xl font-mono p-4 rounded-lg shadow-lg z-50 backdrop-blur-sm">
-        Total: 00:00:00
+    <div class="fixed top-4 right-4 z-50 flex flex-col items-end space-y-2">
+        <div id="totalWorkoutTimerDisplay" class="bg-gray-900 bg-opacity-80 text-white text-6xl font-mono p-4 rounded-lg shadow-lg backdrop-blur-sm">
+            Total: 00:00:00
+        </div>
+        <div id="exerciseCounterDisplay" class="bg-gray-900 bg-opacity-80 text-white text-3xl font-mono p-2 rounded-lg shadow-lg backdrop-blur-sm hidden">
+            Exercise: 0 / 0
+        </div>
     </div>
 
     <div id="loadingScreen" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex flex-col items-center justify-center z-50">
@@ -70,7 +100,7 @@
         <p class="ml-4 text-xl text-white mt-4">Loading App...</p>
     </div>
 
-    <header class="w-full max-w-2xl mb-6 text-center">
+    <header class="w-full max-w-2xl mt-72 mb-6 text-center">
         <h1 class="text-4xl font-bold text-blue-400">Workout Interval Timer</h1>
     </header>
 
@@ -191,7 +221,11 @@
 
     <script type="module">
         // --- DOM Elements ---
+        const cameraToggle = document.getElementById('cameraToggle');
+        const cameraFeed = document.getElementById('cameraFeed');
+        const cameraError = document.getElementById('cameraError');
         const totalWorkoutTimerDisplay = document.getElementById('totalWorkoutTimerDisplay');
+        const exerciseCounterDisplay = document.getElementById('exerciseCounterDisplay');
         const loadingScreen = document.getElementById('loadingScreen');
         const timerSection = document.getElementById('timerSection');
         const currentExerciseNameDisplay = document.getElementById('currentExerciseNameDisplay');
@@ -248,6 +282,7 @@
         let timerIntervalRef = null;
         let currentSelectedFile = null;
         let draggedItemId = null;
+        let cameraStream = null;
 
         // --- Custom Alert ---
         function showAlert(message) {
@@ -257,6 +292,39 @@
         customAlertCloseButton.addEventListener('click', () => {
             customAlertModal.classList.add('hidden');
         });
+
+        // --- Camera Setup ---
+        async function setupCamera() {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    cameraStream = stream;
+                    cameraFeed.srcObject = stream;
+                    cameraFeed.classList.remove('hidden');
+                    cameraError.classList.add('hidden');
+                } catch (err) {
+                    console.error("Error accessing camera: ", err);
+                    cameraFeed.classList.add('hidden');
+                    cameraError.classList.remove('hidden');
+                    cameraToggle.checked = false; // Revert toggle on error
+                }
+            } else {
+                console.error("getUserMedia not supported on this browser.");
+                cameraFeed.classList.add('hidden');
+                cameraError.classList.remove('hidden');
+                cameraToggle.checked = false; // Revert toggle if API not supported
+            }
+        }
+
+        function turnOffCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+            }
+            cameraFeed.srcObject = null;
+            cameraStream = null;
+            cameraFeed.classList.add('hidden');
+            cameraError.classList.add('hidden');
+        }
 
         // --- Helper Functions ---
         function calculateTotalWorkoutTime() {
@@ -275,6 +343,28 @@
 
         function updateTotalTimeDisplay() {
             totalWorkoutTimerDisplay.textContent = `Total: ${formatTimeWithHours(totalTimeRemaining)}`;
+        }
+
+        function updateExerciseCounterDisplay() {
+            const coreExercises = exercises.filter(ex => !isSpecialExercise(ex));
+            const totalCoreExercises = coreExercises.length;
+            const currentEx = exercises[currentExerciseIndex];
+
+            if (!isWorkoutActive || !currentEx || isSpecialExercise(currentEx) || totalCoreExercises === 0) {
+                exerciseCounterDisplay.classList.add('hidden');
+                return;
+            }
+
+            exerciseCounterDisplay.classList.remove('hidden');
+
+            let currentCoreNumber = 0;
+            for (let i = 0; i <= currentExerciseIndex; i++) {
+                if (exercises[i] && !isSpecialExercise(exercises[i])) {
+                    currentCoreNumber++;
+                }
+            }
+            
+            exerciseCounterDisplay.textContent = `Exercise: ${currentCoreNumber} / ${totalCoreExercises}`;
         }
 
         function getExerciseColor(exercise) {
@@ -582,6 +672,7 @@
             
             renderOverallProgress();
             updateTotalTimeDisplay();
+            updateExerciseCounterDisplay();
 
             if (isWorkoutActive && timerMode !== 'paused' && timerMode !== 'idle') { 
                 startPauseResumeText.textContent = 'Pause';
@@ -903,7 +994,7 @@
             reader.onload = (e) => {
                 const text = e.target.result;
                 const newExercises = [];
-                const rows = text.split('\n').filter(row => row.trim() !== '');
+                const rows = text.split(/\r?\n/).filter(row => row.trim() !== '');
 
                 try {
                     for (const row of rows) {
@@ -912,12 +1003,19 @@
                             throw new Error(`Invalid row found: "${row}". Each row must have at least 3 columns.`);
                         }
 
-                        const unescape = (field) => field.startsWith('"') && field.endsWith('"') ? field.slice(1, -1).replace(/""/g, '"') : field;
+                        const unescapeAndTrim = (field) => {
+                            if (!field) return '';
+                            let cleanedField = field.trim();
+                            if (cleanedField.startsWith('"') && cleanedField.endsWith('"')) {
+                                return cleanedField.slice(1, -1).replace(/""/g, '"').trim();
+                            }
+                            return cleanedField;
+                        };
 
-                        const name = unescape(columns[0]);
-                        const workTime = parseInt(columns[1], 10);
-                        const restTime = parseInt(columns[2], 10);
-                        const videoUrl = columns.length > 3 ? unescape(columns[3]) : null;
+                        const name = unescapeAndTrim(columns[0]);
+                        const workTime = parseInt(unescapeAndTrim(columns[1]), 10);
+                        const restTime = parseInt(unescapeAndTrim(columns[2]), 10);
+                        const videoUrl = columns.length > 3 ? unescapeAndTrim(columns[3]) : null;
 
                         if (!name || isNaN(workTime) || isNaN(restTime) || workTime <= 0 || restTime < 0) {
                             throw new Error(`Invalid data in row: "${row}". Check exercise name and times.`);
@@ -1075,6 +1173,14 @@
                     handleStartEditExercise(event);
                 } else if (event.target.closest('.delete-btn')) {
                     handleDeleteExercise(event);
+                }
+            });
+
+            cameraToggle.addEventListener('change', () => {
+                if (cameraToggle.checked) {
+                    setupCamera();
+                } else {
+                    turnOffCamera();
                 }
             });
             
