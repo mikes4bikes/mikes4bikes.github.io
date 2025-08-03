@@ -57,11 +57,13 @@
             border-top: 2px solid #3b82f6; /* blue-500 */
         }
         /* Toggle Switch CSS */
-        #cameraToggle:checked + .dot {
+        .toggle-checkbox:checked + .dot {
             transform: translateX(100%);
-            background-color: #48bb78; /* green-500 */
         }
-        #cameraToggle:checked ~ .block {
+        #cameraToggle:checked + .dot { background-color: #48bb78; }
+        #recordToggle:checked + .dot { background-color: #ef4444; } /* red-500 */
+
+        .toggle-checkbox:checked ~ .block {
              background-color: #a0aec0; /* gray-400 */
         }
 
@@ -70,20 +72,31 @@
 <body class="bg-gray-800 text-gray-100 flex flex-col items-center min-h-screen p-4">
     
     <div class="fixed top-4 left-4 z-50 flex flex-col items-center space-y-2">
-        <div id="cameraFeedContainer" class="shadow-lg rounded-lg overflow-hidden w-80 h-60 bg-black">
+        <div id="cameraFeedContainer" class="shadow-lg rounded-lg overflow-hidden w-80 h-60 bg-black flex items-center justify-center">
             <video id="cameraFeed" class="w-full h-full object-cover hidden" autoplay playsinline muted></video>
+            <div id="cameraOffText" class="text-gray-400">Camera is Off</div>
             <div id="cameraError" class="hidden w-full h-full bg-gray-700 text-white flex items-center justify-center p-2 text-center text-sm">
                 Camera access denied or not available.
             </div>
         </div>
-        <label for="cameraToggle" class="flex items-center cursor-pointer">
-            <span class="mr-2 text-sm text-gray-300">Camera</span>
-            <div class="relative">
-                <input type="checkbox" id="cameraToggle" class="sr-only">
-                <div class="block bg-gray-600 w-10 h-6 rounded-full"></div>
-                <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition"></div>
-            </div>
-        </label>
+        <div class="flex space-x-4">
+            <label for="cameraToggle" class="flex items-center cursor-pointer">
+                <span class="mr-2 text-sm text-gray-300">Camera</span>
+                <div class="relative">
+                    <input type="checkbox" id="cameraToggle" class="sr-only toggle-checkbox">
+                    <div class="block bg-gray-600 w-10 h-6 rounded-full"></div>
+                    <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition"></div>
+                </div>
+            </label>
+            <label for="recordToggle" class="flex items-center cursor-pointer">
+                <span class="mr-2 text-sm text-gray-300">Record</span>
+                <div class="relative">
+                    <input type="checkbox" id="recordToggle" class="sr-only toggle-checkbox" disabled>
+                    <div class="block bg-gray-600 w-10 h-6 rounded-full"></div>
+                    <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition"></div>
+                </div>
+            </label>
+        </div>
     </div>
 
     <div class="fixed top-4 right-4 z-50 flex flex-col items-end space-y-2">
@@ -222,8 +235,10 @@
     <script type="module">
         // --- DOM Elements ---
         const cameraToggle = document.getElementById('cameraToggle');
+        const recordToggle = document.getElementById('recordToggle');
         const cameraFeed = document.getElementById('cameraFeed');
         const cameraError = document.getElementById('cameraError');
+        const cameraOffText = document.getElementById('cameraOffText');
         const totalWorkoutTimerDisplay = document.getElementById('totalWorkoutTimerDisplay');
         const exerciseCounterDisplay = document.getElementById('exerciseCounterDisplay');
         const loadingScreen = document.getElementById('loadingScreen');
@@ -283,6 +298,8 @@
         let currentSelectedFile = null;
         let draggedItemId = null;
         let cameraStream = null;
+        let mediaRecorder = null;
+        let recordedChunks = [];
 
         // --- Custom Alert ---
         function showAlert(message) {
@@ -293,7 +310,7 @@
             customAlertModal.classList.add('hidden');
         });
 
-        // --- Camera Setup ---
+        // --- Camera & Recording Setup ---
         async function setupCamera() {
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                 try {
@@ -301,29 +318,78 @@
                     cameraStream = stream;
                     cameraFeed.srcObject = stream;
                     cameraFeed.classList.remove('hidden');
+                    cameraOffText.classList.add('hidden');
                     cameraError.classList.add('hidden');
+                    recordToggle.disabled = false;
                 } catch (err) {
                     console.error("Error accessing camera: ", err);
                     cameraFeed.classList.add('hidden');
+                    cameraOffText.classList.add('hidden');
                     cameraError.classList.remove('hidden');
-                    cameraToggle.checked = false; // Revert toggle on error
+                    cameraToggle.checked = false; 
+                    recordToggle.disabled = true;
                 }
             } else {
                 console.error("getUserMedia not supported on this browser.");
                 cameraFeed.classList.add('hidden');
+                cameraOffText.classList.add('hidden');
                 cameraError.classList.remove('hidden');
-                cameraToggle.checked = false; // Revert toggle if API not supported
+                cameraToggle.checked = false;
+                recordToggle.disabled = true;
             }
         }
 
         function turnOffCamera() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                recordToggle.checked = false;
+            }
             if (cameraStream) {
                 cameraStream.getTracks().forEach(track => track.stop());
             }
             cameraFeed.srcObject = null;
             cameraStream = null;
             cameraFeed.classList.add('hidden');
+            cameraOffText.classList.remove('hidden');
             cameraError.classList.add('hidden');
+            recordToggle.disabled = true;
+        }
+
+        function startRecording() {
+            if (!cameraStream) {
+                showAlert("Camera is not active. Please turn on the camera first.");
+                recordToggle.checked = false;
+                return;
+            }
+            recordedChunks = [];
+            mediaRecorder = new MediaRecorder(cameraStream);
+            
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                document.body.appendChild(a);
+                a.style = 'display: none';
+                a.href = url;
+                a.download = `workout-recording-${new Date().toISOString()}.webm`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            };
+
+            mediaRecorder.start();
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+            }
         }
 
         // --- Helper Functions ---
@@ -350,12 +416,10 @@
             const totalCoreExercises = coreExercises.length;
             const currentEx = exercises[currentExerciseIndex];
 
-            if (!isWorkoutActive || !currentEx || isSpecialExercise(currentEx) || totalCoreExercises === 0) {
+            if (!isWorkoutActive || !currentEx || totalCoreExercises === 0) {
                 exerciseCounterDisplay.classList.add('hidden');
                 return;
             }
-
-            exerciseCounterDisplay.classList.remove('hidden');
 
             let currentCoreNumber = 0;
             for (let i = 0; i <= currentExerciseIndex; i++) {
@@ -363,9 +427,15 @@
                     currentCoreNumber++;
                 }
             }
-            
-            exerciseCounterDisplay.textContent = `Exercise: ${currentCoreNumber} / ${totalCoreExercises}`;
+
+            if (currentCoreNumber > 0) {
+                exerciseCounterDisplay.classList.remove('hidden');
+                exerciseCounterDisplay.textContent = `Exercise: ${currentCoreNumber} / ${totalCoreExercises}`;
+            } else {
+                exerciseCounterDisplay.classList.add('hidden');
+            }
         }
+
 
         function getExerciseColor(exercise) {
             if (!exercise || !exercise.name) return 'bg-purple-500'; // Default color
@@ -1181,6 +1251,14 @@
                     setupCamera();
                 } else {
                     turnOffCamera();
+                }
+            });
+
+            recordToggle.addEventListener('change', () => {
+                if (recordToggle.checked) {
+                    startRecording();
+                } else {
+                    stopRecording();
                 }
             });
             
