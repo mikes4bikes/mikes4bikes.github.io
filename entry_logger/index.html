@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Entry Logger</title>
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -298,10 +297,8 @@
         import { getFirestore, collection, addDoc, onSnapshot, query, where, serverTimestamp, deleteDoc, doc, getDocs, updateDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Firebase configuration and initialization
-
-        
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            const firebaseConfig = {
+        const firebaseConfig = {
             apiKey: "AIzaSyBE7RBiMWeRGQ0UkTKUx5qDUQ7WUpPX_Mk",
             authDomain: "entry-logger1967.firebaseapp.com",
             projectId: "entry-logger1967",
@@ -310,8 +307,6 @@
             appId: "1:386868272354:web:8ab1d4de522664836392bb",
             measurementId: "G-B9LB74CS5X"
         };
-
-      
         
         let app, db, auth;
         try {
@@ -379,6 +374,7 @@
         let originalTitle = document.title;
         let messageTimeoutId = null;
         let editingEntryId = null;
+        let stopFlashingCallback = null;
 
         const showMessage = (message, autoHide = true) => {
             messageText.textContent = message;
@@ -877,15 +873,7 @@
                 timerId = setTimeout(() => {
                     beepAudio.play().catch(e => console.error("Audio playback failed:", e));
                     promptModal.classList.remove('hidden');
-                    const stopFlashing = flashTab("What are you working on?");
-                    promptModal.dataset.stopFlashing = 'true';
-                    
-                    document.addEventListener('visibilitychange', () => {
-                        if (document.visibilityState === 'visible' && promptModal.dataset.stopFlashing === 'true') {
-                            beepAudio.play().catch(e => console.error("Audio playback failed:", e));
-                        }
-                    });
-
+                    stopFlashingCallback = flashTab("What are you working on?");
                 }, intervalMinutes * 60 * 1000);
             };
 
@@ -897,18 +885,18 @@
             saveEntry(promptTextarea.value, 'work', auth.currentUser?.uid);
             promptTextarea.value = '';
             promptModal.classList.add('hidden');
-            if (tabFlashing) {
-                document.title = originalTitle;
-                tabFlashing = false;
+            if (stopFlashingCallback) {
+                stopFlashingCallback();
+                stopFlashingCallback = null;
             }
         });
 
         dismissPromptBtn.addEventListener('click', () => {
             promptTextarea.value = '';
             promptModal.classList.add('hidden');
-            if (tabFlashing) {
-                document.title = originalTitle;
-                tabFlashing = false;
+            if (stopFlashingCallback) {
+                stopFlashingCallback();
+                stopFlashingCallback = null;
             }
         });
         
