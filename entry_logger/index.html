@@ -47,7 +47,7 @@
             height: 100vh;
         }
 
-        .date-separator {
+        .date-separator, .tag-separator {
             background-color: #cbd5e1;
             color: #4a5568;
             font-weight: bold;
@@ -404,13 +404,21 @@
                 tabFlashing = false;
             };
         };
+        
+        const getTags = (text) => {
+            const regex = /#(\w+)/g;
+            const matches = text.match(regex) || [];
+            return matches.map(tag => tag.substring(1).toLowerCase());
+        };
 
         const saveEntry = async (text, type, userId) => {
             if (!text.trim()) return;
+            const tags = getTags(text);
             try {
                 const docRef = await addDoc(collection(db, `/artifacts/${appId}/users/${userId}/entries`), {
                     text,
                     type,
+                    tags,
                     timestamp: serverTimestamp()
                 });
                 showMessage(`New ${type} saved!`);
@@ -432,10 +440,12 @@
         };
 
         const updateEntry = async (id, newText, newTimestamp, userId) => {
+            const tags = getTags(newText);
             try {
                 await updateDoc(doc(db, `/artifacts/${appId}/users/${userId}/entries`, id), {
                     text: newText,
-                    timestamp: newTimestamp
+                    timestamp: newTimestamp,
+                    tags: tags,
                 });
                 showMessage("Entry updated successfully!");
             } catch (e) {
@@ -485,7 +495,7 @@
             }
         };
 
-        const getEntries = (container, type, filterDate = null) => {
+        const getEntries = (container, type, filterDate = null, filterTag = null) => {
             const userId = auth.currentUser?.uid;
             if (!userId) {
                 container.innerHTML = `<p class="text-gray-500 italic">No entries found for your account.</p>`;
@@ -493,6 +503,9 @@
             }
 
             let entriesQuery = query(collection(db, `/artifacts/${appId}/users/${userId}/entries`), where('type', '==', type));
+            if (filterTag) {
+                entriesQuery = query(entriesQuery, where('tags', 'array-contains', filterTag));
+            }
 
             onSnapshot(entriesQuery, (snapshot) => {
                 const entries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -543,6 +556,8 @@
                 const formattedText = entry.text.replace(/(https?:\/\/[^\s]+|www\.[^\s]+)/g, (url) => {
                     const href = url.startsWith('http') ? url : `https://${url}`;
                     return `<a href="${href}" target="_blank" class="text-blue-500 hover:underline">${url}</a>`;
+                }).replace(/#(\w+)/g, (tag, tagName) => {
+                    return `<a href="#" class="text-indigo-600 hover:text-indigo-800 font-semibold" data-tag="${tagName.toLowerCase()}">${tag}</a>`;
                 });
 
                 entryEl.innerHTML = `
@@ -566,6 +581,18 @@
                     </div>
                 `;
                 container.appendChild(entryEl);
+            });
+
+            container.querySelectorAll('a[data-tag]').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const tag = e.currentTarget.dataset.tag;
+                    if (type === 'notes') {
+                        getEntries(notesContainer, 'notes', null, tag);
+                    } else if (type === 'work') {
+                        getEntries(workContainer, 'work', null, tag);
+                    }
+                });
             });
 
             container.querySelectorAll('.delete-btn').forEach(button => {
