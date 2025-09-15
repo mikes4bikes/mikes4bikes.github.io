@@ -134,6 +134,17 @@
             max-width: 400px;
             text-align: center;
         }
+        
+        .attachment-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 0.5rem;
+        }
+        
+        .attachment-list li {
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+        }
     </style>
 </head>
 <body>
@@ -413,14 +424,17 @@
 
         const saveEntry = async (text, type, userId) => {
             if (!text.trim()) return;
+            
             const tags = getTags(text);
+            const entryData = {
+                text,
+                type,
+                tags,
+                timestamp: serverTimestamp()
+            };
+
             try {
-                const docRef = await addDoc(collection(db, `/artifacts/${appId}/users/${userId}/entries`), {
-                    text,
-                    type,
-                    tags,
-                    timestamp: serverTimestamp()
-                });
+                const docRef = await addDoc(collection(db, `/artifacts/${appId}/users/${userId}/entries`), entryData);
                 showMessage(`New ${type} saved!`);
                 console.log("Document written with ID: ", docRef.id);
             } catch (e) {
@@ -547,22 +561,22 @@
                     lastDate = dateString;
                 }
 
-                const entryEl = document.createElement('div');
-                entryEl.className = 'entry-card';
-                entryEl.draggable = true;
-                entryEl.dataset.id = entry.id;
-                entryEl.dataset.type = type;
-
-                const formattedText = entry.text.replace(/(https?:\/\/[^\s]+|www\.[^\s]+)/g, (url) => {
+                const formattedText = (entry.text || '').replace(/(https?:\/\/[^\s]+|www\.[^\s]+)/g, (url) => {
                     const href = url.startsWith('http') ? url : `https://${url}`;
                     return `<a href="${href}" target="_blank" class="text-blue-500 hover:underline">${url}</a>`;
                 }).replace(/#(\w+)/g, (tag, tagName) => {
                     return `<a href="#" class="text-indigo-600 hover:text-indigo-800 font-semibold" data-tag="${tagName.toLowerCase()}">${tag}</a>`;
                 });
 
+                const entryEl = document.createElement('div');
+                entryEl.className = 'entry-card';
+                entryEl.draggable = true;
+                entryEl.dataset.id = entry.id;
+                entryEl.dataset.type = type;
+
                 entryEl.innerHTML = `
                     <div class="entry-content">
-                        <p class="text-gray-800">${formattedText}</p>
+                        <p class="text-gray-800">${formattedText || 'No text content'}</p>
                     </div>
                     <div class="entry-footer">
                         <span class="text-xs">${entryDate ? entryDate.toLocaleTimeString() : 'Loading...'}</span>
@@ -831,7 +845,7 @@
             reader.readAsText(file);
         });
 
-        // Event Listeners
+        // Event listeners
         saveNotesBtn.addEventListener('click', () => {
             saveEntry(entryTextarea.value, 'notes', auth.currentUser?.uid);
             entryTextarea.value = '';
@@ -881,30 +895,31 @@
         startTimerBtn.addEventListener('click', () => {
             const intervalMinutes = parseInt(intervalInput.value, 10);
             if (timerId) {
-                clearTimeout(timerId);
+                clearInterval(timerId); // Clear any existing timer
             }
             if (isNaN(intervalMinutes) || intervalMinutes <= 0) {
                 showMessage("Please enter a valid interval in minutes.", false);
                 return;
             }
             
-            const nextFiveTimes = [];
+            const nextTwentyTimes = [];
             let currentTime = new Date();
-            for (let i = 0; i < 5; i++) {
+            for (let i = 0; i < 20; i++) {
                 currentTime.setMinutes(currentTime.getMinutes() + intervalMinutes);
-                nextFiveTimes.push(currentTime.toLocaleTimeString('en-US', { hour12: false }));
+                nextTwentyTimes.push(currentTime.toLocaleTimeString('en-US', { hour12: false }));
             }
-            nextTimesEl.innerHTML = `Next prompts: ${nextFiveTimes.join(', ')}`;
+            nextTimesEl.innerHTML = `Next prompts: ${nextTwentyTimes.join(', ')}`;
             
-            const startTimer = () => {
-                timerId = setTimeout(() => {
-                    beepAudio.play().catch(e => console.error("Audio playback failed:", e));
-                    promptModal.classList.remove('hidden');
-                    stopFlashingCallback = flashTab("What are you working on?");
-                }, intervalMinutes * 60 * 1000);
+            const showPrompt = () => {
+                beepAudio.play().catch(e => console.error("Audio playback failed:", e));
+                promptModal.classList.remove('hidden');
+                stopFlashingCallback = flashTab("What are you working on?");
             };
 
-            startTimer();
+            // Run immediately and then at intervals
+            showPrompt();
+            timerId = setInterval(showPrompt, intervalMinutes * 60 * 1000);
+            
             showMessage(`Prompt timer started for ${intervalMinutes} minute intervals.`);
         });
 

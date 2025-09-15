@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2025 Wall Calendar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #e5e7eb; /* Silver */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            margin: 0;
+        }
+
+        .calendar-container {
+            position: relative;
+            width: 90vw;
+            max-width: 800px;
+            height: 70vh;
+            max-height: 600px;
+            border-radius: 1rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            background-color: #ffffff; /* White */
+        }
+
+        .calendar-page {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 1rem;
+            background-color: #ffffff; /* White */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            /* Default state for pages */
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        .calendar-page.visible {
+            visibility: visible;
+            opacity: 1;
+            z-index: 10;
+        }
+
+        .calendar-page.peel-next {
+            animation: peel-next-animation 1s ease-in-out forwards;
+            z-index: 20;
+        }
+        
+        .calendar-page.peel-prev {
+            animation: peel-prev-animation 1s ease-in-out forwards;
+            z-index: 20;
+        }
+
+        @keyframes peel-next-animation {
+            0% {
+                transform: rotate(0) skew(0);
+                opacity: 1;
+            }
+            100% {
+                transform: rotate(-25deg) skew(-25deg, -10deg) translateY(-120%) translateX(50%);
+                opacity: 0;
+            }
+        }
+        
+        @keyframes peel-prev-animation {
+            0% {
+                transform: rotate(0) skew(0);
+                opacity: 1;
+            }
+            100% {
+                transform: rotate(25deg) skew(25deg, 10deg) translateY(-120%) translateX(-50%);
+                opacity: 0;
+            }
+        }
+
+        .calendar-header {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            padding: 1rem 2rem;
+            background-color: #FFFF00; /* Maroon */
+            border-bottom: 2px solid #FFFF00;
+            border-radius: 1rem 1rem 0 0;
+        }
+        
+        .header-logo {
+            height: 50px;
+            justify-self: start;
+        }
+
+        .calendar-header h2 {
+            grid-column: 2;
+            font-size: 2rem;
+            font-weight: 700;
+            color: #000000; /* White */
+            justify-self: center;
+        }
+
+        .days-of-week {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            padding: 1rem 2rem;
+            font-weight: 700;
+            color: #000000; /* black */
+            background-color: #FFFF004f6; /* yello */
+        }
+
+        .calendar-grid {
+            flex-grow: 1;
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            grid-template-rows: repeat(6, 1fr);
+            padding: 1rem 2rem 2rem;
+            gap: 0.5rem;
+        }
+
+        .day {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s;
+            cursor: pointer;
+        }
+
+        .day:hover {
+            background-color: #f4fd8e; /* Silver */
+        }
+
+        .day.current-month {
+            background-color: #fff;
+            border: 1px solid #d1d5db; /* Silver */
+        }
+
+        .day.today {
+            background-color: #242100; /* Maroon */
+            color: #fff; /* White */
+            font-weight: 700;
+        }
+
+        .day.today:hover {
+            background-color: #000000;
+        }
+
+        .day.other-month {
+            opacity: 0.4;
+            cursor: default;
+        }
+
+        .day.selected {
+            background-color: #718096;
+            color: #FFFF00;
+            border: 1px solid #4a5568;
+        }
+
+        .day.selected:hover {
+             background-color: #4a5568;
+        }
+
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <div class="calendar-container">
+        <!-- The first calendar page -->
+        <div id="calendar-page-1" class="calendar-page">
+            <div class="calendar-header">
+                <img src="https://mikes4bikes.github.io/assets/lelogo.jpg" class="header-logo" alt="Learning Engineer logo">
+                <h2 id="month-year-1"></h2>
+            </div>
+            <div class="days-of-week">
+                <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+            </div>
+            <div id="calendar-grid-1" class="calendar-grid"></div>
+        </div>
+        <!-- The second calendar page for the flipping effect -->
+        <div id="calendar-page-2" class="calendar-page">
+            <div class="calendar-header">
+                <img src="https://mikes4bikes.github.io/assets/lelogo.jpg" class="header-logo" alt="Learning Engineer logo">
+                <h2 id="month-year-2"></h2>
+            </div>
+            <div class="days-of-week">
+                <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+            </div>
+            <div id="calendar-grid-2" class="calendar-grid"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const pages = [
+                {
+                    page: document.getElementById('calendar-page-1'),
+                    monthYear: document.getElementById('month-year-1'),
+                    grid: document.getElementById('calendar-grid-1'),
+                },
+                {
+                    page: document.getElementById('calendar-page-2'),
+                    monthYear: document.getElementById('month-year-2'),
+                    grid: document.getElementById('calendar-grid-2'),
+                }
+            ];
+
+            const selectedDates = new Set();
+            let activePageIndex = 0;
+            let currentDate = new Date(2025, 0, 1);
+            const today = new Date();
+            let isAnimating = false;
+
+            const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
+            const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
+
+            const renderCalendar = (date, pageIndex) => {
+                const year = date.getFullYear();
+                const month = date.getMonth();
+                const currentMonthPage = pages[pageIndex];
+
+                currentMonthPage.monthYear.textContent = `${date.toLocaleString('default', { month: 'long' })} ${year}`;
+                currentMonthPage.grid.innerHTML = '';
+
+                const daysInMonth = getDaysInMonth(year, month);
+                const firstDayIndex = getFirstDayOfMonth(year, month);
+                const prevMonthLastDay = new Date(year, month, 0).getDate();
+
+                for (let i = firstDayIndex; i > 0; i--) {
+                    const dayElement = document.createElement('div');
+                    dayElement.className = 'day other-month';
+                    dayElement.textContent = prevMonthLastDay - i + 1;
+                    currentMonthPage.grid.appendChild(dayElement);
+                }
+
+                for (let i = 1; i <= daysInMonth; i++) {
+                    const dayElement = document.createElement('div');
+                    dayElement.className = 'day current-month';
+                    dayElement.textContent = i;
+
+                    const dateString = `${year}-${month}-${i}`;
+
+                    if (i === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+                        dayElement.classList.add('today');
+                    }
+
+                    if (selectedDates.has(dateString)) {
+                        dayElement.classList.add('selected');
+                    }
+                    
+                    dayElement.addEventListener('click', () => {
+                        if (dayElement.classList.contains('current-month')) {
+                            dayElement.classList.toggle('selected');
+                            if (selectedDates.has(dateString)) {
+                                selectedDates.delete(dateString);
+                            } else {
+                                selectedDates.add(dateString);
+                            }
+                        }
+                    });
+
+                    currentMonthPage.grid.appendChild(dayElement);
+                }
+                
+                const totalCellsRendered = firstDayIndex + daysInMonth;
+                const nextMonthDays = 42 - totalCellsRendered;
+                
+                for (let i = 1; i <= nextMonthDays; i++) {
+                    const dayElement = document.createElement('div');
+                    dayElement.className = 'day other-month';
+                    dayElement.textContent = i;
+                    currentMonthPage.grid.appendChild(dayElement);
+                }
+            };
+
+            const transitionPage = (direction) => {
+                if (isAnimating) return;
+                isAnimating = true;
+
+                const currentPage = pages[activePageIndex];
+                const nextPageIndex = (activePageIndex + 1) % 2;
+                const nextPage = pages[nextPageIndex];
+
+                if (direction === 'next') {
+                    currentDate.setMonth(currentDate.getMonth() + 1);
+                } else {
+                    currentDate.setMonth(currentDate.getMonth() - 1);
+                }
+
+                renderCalendar(currentDate, nextPageIndex);
+
+                nextPage.page.classList.add('visible');
+                
+                const animationClass = direction === 'next' ? 'peel-next' : 'peel-prev';
+                currentPage.page.classList.add(animationClass);
+
+                setTimeout(() => {
+                    currentPage.page.classList.remove('visible', animationClass);
+                    
+                    activePageIndex = nextPageIndex;
+                    isAnimating = false;
+                }, 1000);
+            };
+            
+            // Initial setup
+            renderCalendar(currentDate, activePageIndex);
+            pages[activePageIndex].page.classList.add('visible');
+
+            // Add keyboard navigation
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'ArrowRight') {
+                    transitionPage('next');
+                } else if (event.key === 'ArrowLeft') {
+                    transitionPage('prev');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+
