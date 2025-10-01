@@ -826,33 +826,40 @@
                 
                 let importCount = 0;
                 for (let i = 1; i < lines.length; i++) {
-                    const values = lines[i].match(/(?:"[^"]*"|[^,])+/g).map(v => v.trim().replace(/"/g, ''));
-                    if (values.length > 0) {
-                        const text = values[textIndex];
-                        // Force the type based on the button clicked ('notes' or 'work')
-                        const type = importType; 
-                        const date = values[timestampIndex];
-                        const time = values.length > timestampIndex + 1 ? values[timestampIndex + 1] : '00:00:00';
-                        
-                        let entryTimestamp = serverTimestamp();
-                        try {
-                            const combinedDate = new Date(`${date} ${time}`);
-                            if (!isNaN(combinedDate.getTime())) {
-                                entryTimestamp = combinedDate;
-                            } else {
-                                console.warn(`Invalid date format for entry: ${lines[i]}. Using server timestamp.`);
-                            }
-                        } catch (error) {
-                            console.warn(`Error parsing date for entry: ${lines[i]}. Using server timestamp.`, error);
-                        }
+                    // Use regex to handle quoted fields in the CSV line correctly
+                    const values = lines[i].match(/(?:"[^"]*"|[^,])+/g)?.map(v => v.trim().replace(/^"|"$/g, ''));
 
-                        await addDoc(collection(db, `/artifacts/${appId}/users/${userId}/entries`), {
-                            text,
-                            type,
-                            timestamp: entryTimestamp
-                        });
-                        importCount++;
+                    // Check if values array is valid and contains required indices
+                    if (!values || values.length <= textIndex || values.length <= timestampIndex) {
+                        console.warn(`Skipping line ${i + 1}: Missing required data or parsing failed.`);
+                        continue;
                     }
+                    
+                    const text = values[textIndex];
+                    const type = importType; 
+                    const timestampString = values[timestampIndex]; // This contains the full localized date/time string
+
+                    let entryTimestamp = serverTimestamp();
+                    try {
+                        // Directly use the timestampString from the CSV (e.g., "9/1/2025, 8:00:00 AM")
+                        const parsedDate = new Date(timestampString);
+                        
+                        // Check if the parsed date is valid
+                        if (!isNaN(parsedDate.getTime())) {
+                            entryTimestamp = parsedDate;
+                        } else {
+                            console.warn(`Invalid date format for entry: ${timestampString}. Using server timestamp.`);
+                        }
+                    } catch (error) {
+                        console.warn(`Error parsing date: ${error}. Using server timestamp.`, error);
+                    }
+
+                    await addDoc(collection(db, `/artifacts/${appId}/users/${userId}/entries`), {
+                        text,
+                        type,
+                        timestamp: entryTimestamp
+                    });
+                    importCount++;
                 }
                 showMessage(`Successfully imported ${importCount} entries as ${importType}.`);
             };
