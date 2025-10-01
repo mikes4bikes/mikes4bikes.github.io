@@ -770,9 +770,12 @@
             
             const header = 'Text,Type,Timestamp\n';
             const rows = entries.map(e => {
+                // 1. Text: Quoted and internal quotes escaped
                 const text = `"${e.text.replace(/"/g, '""')}"`;
                 const type = e.type || '';
-                const timestamp = e.timestamp ? new Date(e.timestamp.seconds * 1000).toLocaleString() : '';
+                // 2. Timestamp: LOCALIZED string (contains commas) MUST be quoted to prevent splitting into multiple columns
+                const timestampRaw = e.timestamp ? new Date(e.timestamp.seconds * 1000).toLocaleString() : '';
+                const timestamp = `"${timestampRaw.replace(/"/g, '""')}"`; 
                 return `${text},${type},${timestamp}`;
             }).join('\n');
 
@@ -827,7 +830,15 @@
                 let importCount = 0;
                 for (let i = 1; i < lines.length; i++) {
                     // Use regex to handle quoted fields in the CSV line correctly
-                    const values = lines[i].match(/(?:"[^"]*"|[^,])+/g)?.map(v => v.trim().replace(/^"|"$/g, ''));
+                    // This regex splits on comma BUT ignores commas inside quoted fields ("...")
+                    const values = lines[i].match(/(".*?"|[^,]+)(?=,|$)/g)?.map(v => {
+                        v = v.trim();
+                        // Remove surrounding quotes and unescape internal quotes if they were wrapped
+                        if (v.startsWith('"') && v.endsWith('"')) {
+                            return v.substring(1, v.length - 1).replace(/""/g, '"');
+                        }
+                        return v;
+                    });
 
                     // Check if values array is valid and contains required indices
                     if (!values || values.length <= textIndex || values.length <= timestampIndex) {
