@@ -134,100 +134,23 @@
             max-width: 400px;
             text-align: center;
         }
-        
-        .attachment-list {
-            list-style: none;
-            padding: 0;
-            margin-top: 0.5rem;
-        }
-        
-        .attachment-list li {
-            font-size: 0.8rem;
-            margin-top: 0.25rem;
-        }
-
-        /* Styles for YouTube embed */
-        .video-embed-wrapper {
-            position: relative;
-            padding-bottom: 56.25%; /* 16:9 aspect ratio */
-            height: 0;
-            overflow: hidden;
-            border-radius: 0.5rem; /* rounded-lg */
-            margin-top: 0.5rem;
-            margin-bottom: 0.5rem;
-        }
-        .video-embed-wrapper iframe {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-        
-        /* Styles for Link Preview */
-        .link-preview-placeholder {
-            margin-top: 0.5rem;
-            margin-bottom: 0.5rem;
-        }
-        .link-preview-card {
-            border: 1px solid #e5e7eb; /* border-gray-200 */
-            border-radius: 0.5rem; /* rounded-lg */
-            overflow: hidden;
-            text-decoration: none;
-            color: inherit;
-            display: block;
-            margin-top: 0.5rem;
-            margin-bottom: 0.5rem;
-            transition: box-shadow 0.2s;
-        }
-        .link-preview-card:hover {
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-        }
-        .link-preview-image {
-            width: 100%;
-            height: 160px; /* Fixed height for consistency */
-            object-fit: cover; /* Cover the area, cropping if necessary */
-            background-color: #f3f4f6; /* bg-gray-100 */
-        }
-        .link-preview-content {
-            padding: 0.75rem; /* p-3 */
-        }
-        .link-preview-title {
-            font-weight: 600; /* font-semibold */
-            font-size: 0.875rem; /* text-sm */
-            color: #1f2937; /* text-gray-900 */
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .link-preview-description {
-            font-size: 0.875rem; /* text-sm */
-            color: #4b5563; /* text-gray-700 */
-            margin-top: 0.25rem; /* mt-1 */
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .link-preview-sitename {
-            font-size: 0.75rem; /* text-xs */
-            color: #6b7280; /* text-gray-500 */
-            margin-top: 0.5rem; /* mt-2 */
-            text-transform: uppercase;
-        }
-        
     </style>
 </head>
 <body>
 
     <!-- Authentication Modal -->
-    <div id="authModal" class="modal" style="display: flex;">
+    <div id="authModal" class="modal">
         <div class="modal-content">
-            <h2 class="text-2xl font-bold mb-4">Authenticating...</h2>
-            <p>Please wait while we securely sign you in.</p>
+            <h2 class="text-2xl font-bold mb-4">Welcome Back</h2>
+            <button id="googleSignInBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center w-full">
+                <svg class="w-5 h-5 mr-2" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.658 4.103-5.264 7.151-9.986 7.151-5.718 0-10.342-4.624-10.342-10.342 0-5.718 4.624-10.342 10.342-10.342 3.265 0 6.275 1.701 7.915 4.426l5.962-3.702c-3.323-5.59-9.155-9.42-16.142-9.42C12.388 6.551 6 12.939 6 20.803c0 7.864 6.388 14.252 14.252 14.252 8.081 0 14.227-6.088 14.227-14.252 0-.964-.13-1.921-.365-2.839z" />
+                    <path fill="#FF3D00" d="M6 20.803c0 1.932.35 3.799.986 5.518l5.882-4.576c-.469-1.353-.733-2.816-.733-4.102z" />
+                    <path fill="#4CAF50" d="M20.252 42.051c-4.482 0-8.62-2.185-11.288-5.79l5.962-4.735c2.193 2.768 5.627 4.542 9.531 4.542 5.093 0 9.073-2.617 11.288-6.61l5.961 3.702c-3.323 5.59-9.155 9.42-16.142 9.42z" />
+                    <path fill="#1976D2" d="M43.611 20.083c0-1.125-.19-2.221-.524-3.235l-5.962 3.702c.235.918.365 1.874.365 2.839 0 7.42-5.464 12.012-11.288 12.012-4.16 0-7.484-1.841-9.531-4.542l-5.961 4.735c3.673 3.65 8.441 5.92 13.91 5.92 8.081 0 14.227-6.088 14.227-14.252 0-.964-.13-1.921-.365-2.839z" />
+                </svg>
+                Sign In with Google
+            </button>
         </div>
     </div>
 
@@ -253,7 +176,7 @@
                 <div class="bg-white p-6 rounded-xl shadow-lg w-full">
                     <h1 class="text-3xl font-bold text-center mb-6">Entry Logger</h1>
                     <div class="mb-4">
-                        <textarea id="entryTextarea" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow" rows="4" placeholder="Enter a new entry... (Paste a YouTube or any link!)"></textarea>
+                        <textarea id="entryTextarea" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow" rows="4" placeholder="Enter a new entry..."></textarea>
                     </div>
                     <div class="flex justify-between space-x-2 mb-4">
                         <button id="saveNotesBtn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-colors">
@@ -271,26 +194,17 @@
                         </button>
                     </div>
                     <div id="nextTimes" class="mt-4 text-sm text-center"></div>
-                    <div class="mt-6 flex flex-col space-y-2">
-                        <!-- Exports Row -->
-                        <div class="flex justify-between space-x-2">
-                            <button id="exportNotesCsvBtn" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition-colors text-sm">
-                                Export Notes CSV
-                            </button>
-                            <button id="exportWorkCsvBtn" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition-colors text-sm">
-                                Export Work CSV
-                            </button>
-                        </div>
-                        <!-- Imports Row -->
-                        <div class="flex justify-between space-x-2">
-                            <button id="importNotesCsvBtn" class="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition-colors text-sm">
-                                Import Notes CSV
-                            </button>
-                            <button id="importWorkCsvBtn" class="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition-colors text-sm">
-                                Import Work CSV
-                            </button>
-                        </div>
-                        <input type="file" id="csvFileInput" class="hidden" accept=".csv" data-import-type="">
+                    <div class="mt-6 flex justify-between space-x-2">
+                        <button id="exportNotesCsvBtn" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition-colors text-sm">
+                            Export Notes CSV
+                        </button>
+                        <button id="exportWorkCsvBtn" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition-colors text-sm">
+                            Export Work CSV
+                        </button>
+                        <button id="importCsvBtn" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-3 rounded-xl shadow-lg transition-colors text-sm">
+                            Import CSV
+                        </button>
+                        <input type="file" id="csvFileInput" class="hidden" accept=".csv">
                     </div>
                     <div class="mt-4 text-center flex justify-center space-x-4">
                         <button id="deleteAllBtn" class="text-red-500 hover:text-red-700 font-semibold text-sm transition-colors">Delete All Entries</button>
@@ -379,49 +293,33 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        // Updated auth imports
-        import { getAuth, signInWithCustomToken, signInAnonymously, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        // Added setLogLevel for debugging
-        import { getFirestore, collection, addDoc, onSnapshot, query, where, serverTimestamp, deleteDoc, doc, getDocs, updateDoc, writeBatch, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, where, serverTimestamp, deleteDoc, doc, getDocs, updateDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Firebase configuration and initialization
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        // Use environment-provided config
-        const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : '{}';
-        const firebaseConfig = JSON.parse(firebaseConfigStr);
+        const firebaseConfig = {
+            apiKey: "AIzaSyBE7RBiMWeRGQ0UkTKUx5qDUQ7WUpPX_Mk",
+            authDomain: "entry-logger1967.firebaseapp.com",
+            projectId: "entry-logger1967",
+            storageBucket: "entry-logger1967.firebasestorage.app",
+            messagingSenderId: "386868272354",
+            appId: "1:386868272354:web:8ab1d4de522664836392bb",
+            measurementId: "G-B9LB74CS5X"
+        };
         
         let app, db, auth;
         try {
-            // Check if config is available
-            if (Object.keys(firebaseConfig).length === 0 && firebaseConfigStr === '{}') {
-                console.warn("Firebase config is empty. Using default project as fallback.");
-                // Fallback to your original config if the environment one isn't present
-                const fallbackConfig = {
-                    apiKey: "AIzaSyBE7RBiMWeRGQ0UkTKUx5qDUQ7WUpPX_Mk",
-                    authDomain: "entry-logger1967.firebaseapp.com",
-                    projectId: "entry-logger1967",
-                    storageBucket: "entry-logger1967.firebasestorage.app",
-                    messagingSenderId: "386868272354",
-                    appId: "1:386868272354:web:8ab1d4de522664836392bb",
-                    measurementId: "G-B9LB74CS5X"
-                };
-                app = initializeApp(fallbackConfig);
-            } else {
-                 app = initializeApp(firebaseConfig);
-            }
-            
+            app = initializeApp(firebaseConfig);
             db = getFirestore(app);
             auth = getAuth(app);
-            // Enable detailed logging for Firebase
-            setLogLevel('Debug');
         } catch (error) {
             console.error("Firebase initialization failed:", error);
         }
 
         // DOM Elements
         const authModal = document.getElementById('authModal');
-        // googleSignInBtn is no longer used for auth, but we leave it in the HTML
-        // const googleSignInBtn = document.getElementById('googleSignInBtn'); 
+        const googleSignInBtn = document.getElementById('googleSignInBtn');
         const mainContent = document.getElementById('mainContent');
         const signOutBtn = document.getElementById('signOutBtn');
         const userIdDisplay = document.getElementById('userIdDisplay');
@@ -442,9 +340,7 @@
         
         const exportNotesCsvBtn = document.getElementById('exportNotesCsvBtn');
         const exportWorkCsvBtn = document.getElementById('exportWorkCsvBtn');
-        
-        const importNotesCsvBtn = document.getElementById('importNotesCsvBtn');
-        const importWorkCsvBtn = document.getElementById('importWorkCsvBtn');
+        const importCsvBtn = document.getElementById('importCsvBtn');
         const csvFileInput = document.getElementById('csvFileInput');
 
         const promptModal = document.getElementById('promptModal');
@@ -517,18 +413,14 @@
 
         const saveEntry = async (text, type, userId) => {
             if (!text.trim()) return;
-            
             const tags = getTags(text);
-            const entryData = {
-                text,
-                type,
-                tags,
-                timestamp: serverTimestamp()
-            };
-
             try {
-                // Use the environment appId in the path
-                const docRef = await addDoc(collection(db, `/artifacts/${appId}/users/${userId}/entries`), entryData);
+                const docRef = await addDoc(collection(db, `/artifacts/${appId}/users/${userId}/entries`), {
+                    text,
+                    type,
+                    tags,
+                    timestamp: serverTimestamp()
+                });
                 showMessage(`New ${type} saved!`);
                 console.log("Document written with ID: ", docRef.id);
             } catch (e) {
@@ -606,7 +498,7 @@
         const getEntries = (container, type, filterDate = null, filterTag = null) => {
             const userId = auth.currentUser?.uid;
             if (!userId) {
-                container.innerHTML = `<p class="text-gray-500 italic">Please sign in to view entries.</p>`;
+                container.innerHTML = `<p class="text-gray-500 italic">No entries found for your account.</p>`;
                 return;
             }
 
@@ -624,93 +516,6 @@
             });
         };
 
-        /**
-         * Extracts a YouTube video ID from various URL formats.
-         * @param {string} url - The URL to parse.
-         * @returns {string|null} The video ID, or null if not found.
-         */
-        function getYoutubeVideoId(url) {
-            // Updated regex to include support for YouTube /shorts/ links
-            const regex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|shorts)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
-            const match = url.match(regex);
-            return match ? match[1] : null;
-        }
-
-        /**
-         * Creates an iframe embed HTML string for a YouTube video.
-         * @param {string} videoId - The YouTube video ID.
-         * @returns {string} The HTML string for the embed.
-         */
-        function createYoutubeEmbed(videoId) {
-            return `
-                <div class="video-embed-wrapper">
-                    <iframe 
-                        src="https://www.youtube.com/embed/${videoId}" 
-                        title="YouTube video player" 
-                        frameborder="0" 
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                        allowfullscreen
-                    ></iframe>
-                </div>`;
-        }
-        
-        /**
-         * Fetches metadata for a URL and renders a preview card.
-         * @param {string} url - The URL to fetch metadata for.
-         * @param {string} placeholderId - The ID of the div element to inject the preview into.
-         * @param {string} fallbackUrl - The original URL to render as a link if fetching fails.
-         */
-        async function fetchLinkPreview(url, placeholderId, fallbackUrl) {
-            const placeholder = document.getElementById(placeholderId);
-            if (!placeholder) return;
-
-            try {
-                // We use a different free proxy API (microlink.io) to get link metadata.
-                const response = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`);
-                if (!response.ok) {
-                    throw new Error(`API request failed with status ${response.status}`);
-                }
-                const responseData = await response.json();
-                
-                // Check if the API call was successful and returned data
-                if (responseData.status !== 'success' || !responseData.data) {
-                    throw new Error('API did not return successful data.');
-                }
-                
-                const data = responseData.data;
-
-                if (!data.title && !data.description) {
-                     throw new Error('No metadata (title, description) found in API response.');
-                }
-                
-                // Get the best available image
-                const image = data.image ? data.image.url : (data.logo ? data.logo.url : 'https://placehold.co/600x315/e5e7eb/4a5568?text=No+Image');
-                
-                const title = data.title ? data.title : 'No Title Found';
-                const description = data.description ? data.description.substring(0, 150) + (data.description.length > 150 ? '...' : '') : 'No description available.';
-                // Use publisher, fallback to hostname
-                const siteName = data.publisher ? data.publisher : (new URL(url)).hostname.replace('www.', '');
-
-                // Create the preview card HTML
-                const cardHtml = `
-                    <a href="${url}" target="_blank" class="link-preview-card">
-                        <img src="${image}" alt="Preview Image" class="link-preview-image" onerror="this.onerror=null;this.src='https://placehold.co/600x315/e5e7eb/4a5568?text=Image+Failed';this.style.objectFit='contain';">
-                        <div class="link-preview-content">
-                            <div class="link-preview-title">${title}</div>
-                            <div class="link-preview-description">${description}</div>
-                            <div class="link-preview-sitename">${siteName}</div>
-                        </div>
-                    </a>
-                `;
-                placeholder.innerHTML = cardHtml;
-            } catch (error) {
-                console.warn(`Failed to fetch link preview for ${url}:`, error);
-                // Fallback to a simple link if the API fails
-                placeholder.innerHTML = `<a href="${fallbackUrl}" target="_blank" class="text-blue-500 hover:underline">${fallbackUrl}</a>`;
-            }
-        }
-
-
         const renderEntries = (entries, container, type, filterDate) => {
             container.innerHTML = '';
             
@@ -727,15 +532,7 @@
                 return;
             }
             
-            // Sort in memory instead of using Firestore's orderBy
-            const sortedEntries = filteredEntries.sort((a, b) => {
-                const timeA = a.timestamp ? a.timestamp.toMillis() : 0;
-                const timeB = b.timestamp ? b.timestamp.toMillis() : 0;
-                return timeB - timeA;
-            });
-            
-            // Store calls to fetchLinkPreview to be made after elements are in the DOM
-            const previewJobs = [];
+            const sortedEntries = filteredEntries.sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis());
             
             let lastDate = null;
             sortedEntries.forEach(entry => {
@@ -750,61 +547,22 @@
                     lastDate = dateString;
                 }
 
-                // --- Link/Embed Logic ---
-                let videoEmbedHtml = '';
-                let previewPlaceholderHtml = '';
-                let embeddedUrl = null; // Store the URL that is being embedded
-                const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
-                const urls = (entry.text || '').match(urlRegex) || [];
-                
-                // 1. Check for YouTube video first
-                for (const url of urls) {
-                    const videoId = getYoutubeVideoId(url);
-                    if (videoId) {
-                        videoEmbedHtml = createYoutubeEmbed(videoId);
-                        embeddedUrl = url; // Save the URL
-                        break; // Only embed the first video found
-                    }
-                }
-                
-                // 2. If no YouTube video, check for other links to preview
-                if (!embeddedUrl && urls.length > 0) {
-                    const firstUrl = urls[0];
-                    // Don't try to preview local files or non-http links
-                    if (firstUrl.startsWith('http')) {
-                        previewPlaceholderHtml = `<div id="preview-${entry.id}" class="link-preview-placeholder"><p class="text-gray-500 italic">Loading preview...</p></div>`;
-                        embeddedUrl = firstUrl;
-                        // Add a job to fetch this preview after rendering
-                        previewJobs.push({ url: firstUrl, id: `preview-${entry.id}` });
-                    }
-                }
-                // --- End Link/Embed Logic ---
-
-                let textForFormatting = entry.text || '';
-                if (embeddedUrl) {
-                    // Remove the first instance of the embedded URL from the text
-                    textForFormatting = textForFormatting.replace(embeddedUrl, '').trim(); 
-                }
-
-                const formattedText = textForFormatting.replace(urlRegex, (url) => {
-                    // This regex will run again, but it won't find the embeddedUrl if it was removed
-                    const href = url.startsWith('http') ? url : `https://${url}`;
-                    return `<a href="${href}" target="_blank" class="text-blue-500 hover:underline">${url}</a>`;
-                }).replace(/#(\w+)/g, (tag, tagName) => {
-                    return `<a href="#" class="text-indigo-600 hover:text-indigo-800 font-semibold" data-tag="${tagName.toLowerCase()}">${tag}</a>`;
-                });
-
                 const entryEl = document.createElement('div');
                 entryEl.className = 'entry-card';
                 entryEl.draggable = true;
                 entryEl.dataset.id = entry.id;
                 entryEl.dataset.type = type;
 
+                const formattedText = entry.text.replace(/(https?:\/\/[^\s]+|www\.[^\s]+)/g, (url) => {
+                    const href = url.startsWith('http') ? url : `https://${url}`;
+                    return `<a href="${href}" target="_blank" class="text-blue-500 hover:underline">${url}</a>`;
+                }).replace(/#(\w+)/g, (tag, tagName) => {
+                    return `<a href="#" class="text-indigo-600 hover:text-indigo-800 font-semibold" data-tag="${tagName.toLowerCase()}">${tag}</a>`;
+                });
+
                 entryEl.innerHTML = `
                     <div class="entry-content">
-                        ${videoEmbedHtml} <!-- Video embed goes here -->
-                        ${previewPlaceholderHtml} <!-- Link preview goes here -->
-                        ${(formattedText.trim() !== '') ? `<p class="text-gray-800 mt-2">${formattedText}</p>` : '<!-- No additional text -->'}
+                        <p class="text-gray-800">${formattedText}</p>
                     </div>
                     <div class="entry-footer">
                         <span class="text-xs">${entryDate ? entryDate.toLocaleTimeString() : 'Loading...'}</span>
@@ -823,12 +581,6 @@
                     </div>
                 `;
                 container.appendChild(entryEl);
-            });
-
-            // --- Run all the preview fetch jobs ---
-            // We do this *after* all elements are in the DOM.
-            previewJobs.forEach(job => {
-                fetchLinkPreview(job.url, job.id, job.url); // Pass url as fallback
             });
 
             container.querySelectorAll('a[data-tag]').forEach(link => {
@@ -942,9 +694,8 @@
             e.preventDefault();
             notesList.classList.remove('bg-blue-200');
             const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-            const userId = auth.currentUser?.uid;
-            if (userId && data.type !== 'notes') {
-                moveEntry(data.id, 'notes', userId);
+            if (data.type !== 'notes') {
+                moveEntry(data.id, 'notes', auth.currentUser?.uid);
             }
         });
 
@@ -959,9 +710,8 @@
             e.preventDefault();
             workList.classList.remove('bg-green-200');
             const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-            const userId = auth.currentUser?.uid;
-            if (userId && data.type !== 'work') {
-                moveEntry(data.id, 'work', userId);
+            if (data.type !== 'work') {
+                moveEntry(data.id, 'work', auth.currentUser?.uid);
             }
         });
 
@@ -995,12 +745,9 @@
             
             const header = 'Text,Type,Timestamp\n';
             const rows = entries.map(e => {
-                // 1. Text: Quoted and internal quotes escaped
-                const text = `"${(e.text || '').replace(/"/g, '""')}"`;
+                const text = `"${e.text.replace(/"/g, '""')}"`;
                 const type = e.type || '';
-                // 2. Timestamp: LOCALIZED string (contains commas) MUST be quoted to prevent splitting into multiple columns
-                const timestampRaw = e.timestamp ? new Date(e.timestamp.seconds * 1000).toLocaleString() : '';
-                const timestamp = `"${timestampRaw.replace(/"/g, '""')}"`; 
+                const timestamp = e.timestamp ? new Date(e.timestamp.seconds * 1000).toLocaleString() : '';
                 return `${text},${type},${timestamp}`;
             }).join('\n');
 
@@ -1017,15 +764,12 @@
             showMessage(`Exported ${entries.length} ${type} entries.`);
         };
         
-        const importCsvClick = (type) => {
-            csvFileInput.dataset.importType = type;
+        const importCsv = () => {
             csvFileInput.click();
         };
 
         csvFileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
-            const importType = csvFileInput.dataset.importType || 'notes'; // Default to notes if type is somehow missing
-            
             if (!file) return;
 
             const reader = new FileReader();
@@ -1039,10 +783,11 @@
 
                 const header = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
                 const textIndex = header.indexOf('Text');
+                const typeIndex = header.indexOf('Type');
                 const timestampIndex = header.indexOf('Timestamp');
 
-                if (textIndex === -1 || timestampIndex === -1) {
-                    showMessage("CSV is missing 'Text' or 'Timestamp' columns. Please ensure your CSV has these headers.", false);
+                if (textIndex === -1 || typeIndex === -1 || timestampIndex === -1) {
+                    showMessage("CSV is missing 'Text', 'Type', or 'Timestamp' columns.", false);
                     return;
                 }
                 
@@ -1054,80 +799,50 @@
                 
                 let importCount = 0;
                 for (let i = 1; i < lines.length; i++) {
-                    // Use regex to handle quoted fields in the CSV line correctly
-                    // This regex splits on comma BUT ignores commas inside quoted fields ("...")
-                    const values = lines[i].match(/(".*?"|[^,]+)(?=,|$)/g)?.map(v => {
-                        v = v.trim();
-                        // Remove surrounding quotes and unescape internal quotes if they were wrapped
-                        if (v.startsWith('"') && v.endsWith('"')) {
-                            return v.substring(1, v.length - 1).replace(/""/g, '"');
-                        }
-                        return v;
-                    });
-
-                    // Check if values array is valid and contains required indices
-                    if (!values || values.length <= textIndex || values.length <= timestampIndex) {
-                        console.warn(`Skipping line ${i + 1}: Missing required data or parsing failed.`);
-                        continue;
-                    }
-                    
-                    const text = values[textIndex];
-                    const type = importType; 
-                    const timestampString = values[timestampIndex]; // This contains the full localized date/time string
-
-                    let entryTimestamp = serverTimestamp();
-                    try {
-                        // Directly use the timestampString from the CSV (e.g., "9/1/2025, 8:00:00 AM")
-                        const parsedDate = new Date(timestampString);
+                    const values = lines[i].match(/(?:"[^"]*"|[^,])+/g).map(v => v.trim().replace(/"/g, ''));
+                    if (values.length > 0) {
+                        const text = values[textIndex];
+                        const type = values[typeIndex] || 'notes'; 
+                        const date = values[timestampIndex];
+                        const time = values.length > timestampIndex + 1 ? values[timestampIndex + 1] : '00:00:00';
                         
-                        // Check if the parsed date is valid
-                        if (!isNaN(parsedDate.getTime())) {
-                            entryTimestamp = parsedDate;
-                        } else {
-                            console.warn(`Invalid date format for entry: ${timestampString}. Using server timestamp.`);
+                        let entryTimestamp = serverTimestamp();
+                        try {
+                            const combinedDate = new Date(`${date} ${time}`);
+                            if (!isNaN(combinedDate.getTime())) {
+                                entryTimestamp = combinedDate;
+                            } else {
+                                console.warn(`Invalid date format for entry: ${lines[i]}. Using server timestamp.`);
+                            }
+                        } catch (error) {
+                            console.warn(`Error parsing date for entry: ${lines[i]}. Using server timestamp.`, error);
                         }
-                    } catch (error) {
-                        console.warn(`Error parsing date: ${error}. Using server timestamp.`, error);
-                    }
 
-                    await addDoc(collection(db, `/artifacts/${appId}/users/${userId}/entries`), {
-                        text,
-                        type,
-                        timestamp: entryTimestamp
-                    });
-                    importCount++;
+                        await addDoc(collection(db, `/artifacts/${appId}/users/${userId}/entries`), {
+                            text,
+                            type,
+                            timestamp: entryTimestamp
+                        });
+                        importCount++;
+                    }
                 }
-                showMessage(`Successfully imported ${importCount} entries as ${importType}.`);
+                showMessage(`Successfully imported ${importCount} entries.`);
             };
             reader.readAsText(file);
-            e.target.value = null; // Clear the input so the same file can be selected again
         });
 
-        // Event listeners
+        // Event Listeners
         saveNotesBtn.addEventListener('click', () => {
-            const userId = auth.currentUser?.uid;
-            if (userId) {
-                saveEntry(entryTextarea.value, 'notes', userId);
-                entryTextarea.value = '';
-            } else {
-                showMessage("Not signed in.", false);
-            }
+            saveEntry(entryTextarea.value, 'notes', auth.currentUser?.uid);
+            entryTextarea.value = '';
         });
         saveWorkBtn.addEventListener('click', () => {
-            const userId = auth.currentUser?.uid;
-             if (userId) {
-                saveEntry(entryTextarea.value, 'work', userId);
-                entryTextarea.value = '';
-            } else {
-                showMessage("Not signed in.", false);
-            }
+            saveEntry(entryTextarea.value, 'work', auth.currentUser?.uid);
+            entryTextarea.value = '';
         });
         exportNotesCsvBtn.addEventListener('click', () => exportCsv('notes'));
         exportWorkCsvBtn.addEventListener('click', () => exportCsv('work'));
-        
-        // New Import button listeners
-        importNotesCsvBtn.addEventListener('click', () => importCsvClick('notes'));
-        importWorkCsvBtn.addEventListener('click', () => importCsvClick('work'));
+        importCsvBtn.addEventListener('click', importCsv);
         
         notesDateFilter.addEventListener('change', (e) => {
             const selectedDate = new Date(e.target.value);
@@ -1166,39 +881,35 @@
         startTimerBtn.addEventListener('click', () => {
             const intervalMinutes = parseInt(intervalInput.value, 10);
             if (timerId) {
-                clearInterval(timerId); // Clear any existing timer
+                clearTimeout(timerId);
             }
             if (isNaN(intervalMinutes) || intervalMinutes <= 0) {
                 showMessage("Please enter a valid interval in minutes.", false);
                 return;
             }
             
-            const nextTwentyTimes = [];
+            const nextFiveTimes = [];
             let currentTime = new Date();
-            for (let i = 0; i < 20; i++) {
+            for (let i = 0; i < 5; i++) {
                 currentTime.setMinutes(currentTime.getMinutes() + intervalMinutes);
-                nextTwentyTimes.push(currentTime.toLocaleTimeString('en-US', { hour12: false }));
+                nextFiveTimes.push(currentTime.toLocaleTimeString('en-US', { hour12: false }));
             }
-            nextTimesEl.innerHTML = `Next prompts: ${nextTwentyTimes.join(', ')}`;
+            nextTimesEl.innerHTML = `Next prompts: ${nextFiveTimes.join(', ')}`;
             
-            const showPrompt = () => {
-                beepAudio.play().catch(e => console.error("Audio playback failed:", e));
-                promptModal.classList.remove('hidden');
-                stopFlashingCallback = flashTab("What are you working on?");
+            const startTimer = () => {
+                timerId = setTimeout(() => {
+                    beepAudio.play().catch(e => console.error("Audio playback failed:", e));
+                    promptModal.classList.remove('hidden');
+                    stopFlashingCallback = flashTab("What are you working on?");
+                }, intervalMinutes * 60 * 1000);
             };
 
-            // Run immediately and then at intervals
-            showPrompt();
-            timerId = setInterval(showPrompt, intervalMinutes * 60 * 1000);
-            
+            startTimer();
             showMessage(`Prompt timer started for ${intervalMinutes} minute intervals.`);
         });
 
         savePromptBtn.addEventListener('click', () => {
-            const userId = auth.currentUser?.uid;
-            if (userId) {
-                saveEntry(promptTextarea.value, 'work', userId);
-            }
+            saveEntry(promptTextarea.value, 'work', auth.currentUser?.uid);
             promptTextarea.value = '';
             promptModal.classList.add('hidden');
             if (stopFlashingCallback) {
@@ -1216,7 +927,16 @@
             }
         });
         
-        // --- Firebase Authentication Logic ---
+        // Firebase Authentication
+        const googleProvider = new GoogleAuthProvider();
+        googleSignInBtn.addEventListener('click', () => {
+            signInWithPopup(auth, googleProvider)
+                .catch((error) => {
+                    console.error("Google Sign-in failed:", error);
+                    showMessage("Google Sign-in failed. Please check your console.", false);
+                });
+        });
+
         signOutBtn.addEventListener('click', () => {
             signOut(auth).then(() => {
                 console.log("User signed out.");
@@ -1229,7 +949,6 @@
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                // User is signed in
                 console.log("User is signed in:", user.uid);
                 authModal.style.display = 'none';
                 mainContent.classList.remove('hidden');
@@ -1237,44 +956,15 @@
                 getEntries(notesContainer, 'notes');
                 getEntries(workContainer, 'work');
             } else {
-                // User is signed out
                 console.log("User is signed out.");
-                // Keep the auth modal visible
                 authModal.style.display = 'flex';
                 mainContent.classList.add('hidden');
                 notesContainer.innerHTML = '<p class="text-gray-500 italic">Please sign in to view your notes.</p>';
                 workContainer.innerHTML = '<p class="text-gray-500 italic">Please sign in to view your work.</p>';
                 userIdDisplay.textContent = '';
-
-                // Attempt to sign in with custom token or anonymously
-                (async () => {
-                    try {
-                        const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-                        if (token) {
-                            console.log("Attempting sign-in with custom token...");
-                            await signInWithCustomToken(auth, token);
-                            console.log("Sign-in with custom token successful.");
-                        } else {
-                            console.log("No custom token found. Attempting anonymous sign-in...");
-                            await signInAnonymously(auth);
-                            console.log("Anonymous sign-in successful.");
-                        }
-                        // The onAuthStateChanged listener will fire again with the new user state
-                    } catch (error) {
-                        console.error("Authentication failed:", error);
-                        if(authModal) {
-                           const authHeader = authModal.querySelector('h2');
-                           if (authHeader) authHeader.textContent = 'Authentication Failed';
-                           const authP = authModal.querySelector('p');
-                           if (authP) authP.textContent = 'Could not sign in. Please check console for errors.';
-                        }
-                        showMessage("Authentication failed. Please check the console.", false);
-                    }
-                })();
             }
         });
 
     </script>
 </body>
 </html>
-

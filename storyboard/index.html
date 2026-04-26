@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Storyboarder Clone — JS/jQuery Extended (Fixed)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  :root{--sidebar:260px;}
+  body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;display:flex;height:100vh;}
+  #sidebar{width:var(--sidebar);border-right:1px solid #ddd;padding:12px;box-sizing:border-box;display:flex;flex-direction:column}
+  #canvasWrap{flex:1;display:flex;flex-direction:column;padding:12px;box-sizing:border-box}
+  .panel{background:#fff;border:1px solid #e6e6e6;padding:8px;border-radius:6px}
+  #tools .row{display:flex;gap:4px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+  button{cursor:pointer;font-size:12px;padding:4px 6px}
+  #stage{flex:1;position:relative;background:#fafafa;border-radius:6px;overflow:hidden}
+  canvas{position:absolute;left:0;top:0;width:100%;height:100%;touch-action:none}
+  #timeline{display:flex;gap:8px;margin-top:10px;padding-bottom:6px;overflow:auto}
+  .thumb{width:120px;border:1px solid #ddd;padding:6px;border-radius:6px;background:#fff}
+  .thumb img{max-width:100%;height:72px;object-fit:contain;background:#fff}
+  #rightbar{width:300px;border-left:1px solid #ddd;padding:12px;box-sizing:border-box}
+  label{font-size:13px}
+  input[type=color]{width:36px;height:28px;padding:0;border:none}
+  .palette button{width:22px;height:22px;border-radius:4px;border:1px solid #ccc}
+  .guide-toggle{display:flex;gap:6px;flex-direction:column}
+  pre{white-space:pre-wrap;max-height:240px;overflow:auto;background:#f8f8f8;padding:8px}
+</style>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+  <div id="sidebar">
+    <h3>Storyboarder — Simple</h3>
+    <div id="tools" class="panel">
+      <div class="row">
+        <button id="b1">Light</button>
+        <button id="b2">Pencil</button>
+        <button id="b3">Pen</button>
+        <button id="b4">Brush</button>
+        <button id="eraser">Eraser</button>
+      </div>
+
+      <div class="row">
+        <label>Sizes</label>
+        <button class="size" data-i="0">S</button>
+        <button class="size" data-i="1">M</button>
+        <button class="size" data-i="2">L</button>
+        <span id="sizeLabel"></span>
+      </div>
+
+      <div class="row">
+        <label>Palette</label>
+        <div class="palette" id="paletteBtns"></div>
+        <input type="color" id="customColor" />
+      </div>
+    </div>
+
+    <div style="margin-top:12px" class="panel">
+      <div>Track</div>
+      <pre id="changelog">(no changes yet)</pre>
+    </div>
+  </div>
+
+  <div id="canvasWrap">
+    <div id="stage" class="panel">
+      <canvas id="drawCanvas"></canvas>
+    </div>
+  </div>
+
+<script>
+$(function(){
+  const $canvas = $('#drawCanvas')[0];
+  const ctx = $canvas.getContext('2d');
+
+  function resizeCanvas(){
+    const rect = $('#stage')[0].getBoundingClientRect();
+    $canvas.width = rect.width;
+    $canvas.height = rect.height;
+  }
+  $(window).on('resize', resizeCanvas);
+  resizeCanvas();
+
+  let brushType = 'pencil';
+  const brushSizes = [2,6,14];
+  let brushIdx = 1;
+  let color = '#000000';
+  let drawing = false, lastPos = null;
+
+  function getPos(e){
+    const rect = $canvas.getBoundingClientRect();
+    if(e.touches && e.touches[0]){
+      return {x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top};
+    } else {
+      return {x: e.clientX - rect.left, y: e.clientY - rect.top};
+    }
+  }
+
+  function drawLine(p1,p2){
+    ctx.save();
+    ctx.lineCap='round';
+    ctx.lineJoin='round';
+    ctx.strokeStyle = (brushType==='eraser')? '#fff' : color;
+    ctx.lineWidth = brushSizes[brushIdx];
+    ctx.beginPath();
+    ctx.moveTo(p1.x,p1.y);
+    ctx.lineTo(p2.x,p2.y);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  $('#b1').click(()=>{ brushType='light'; color='#888'; });
+  $('#b2').click(()=>{ brushType='pencil'; color='#000'; });
+  $('#b3').click(()=>{ brushType='pen'; color='#000'; });
+  $('#b4').click(()=>{ brushType='brush'; color='#000'; });
+  $('#eraser').click(()=>{ brushType='eraser'; });
+
+  $('.size').click(function(){ brushIdx = Number($(this).data('i')); $('#sizeLabel').text(brushSizes[brushIdx]+'px'); });
+  $('#sizeLabel').text(brushSizes[brushIdx]+'px');
+
+  $('#customColor').change(function(){ color = $(this).val(); });
+
+  $('#drawCanvas').on('mousedown touchstart', function(e){ drawing = true; lastPos = getPos(e.originalEvent||e); });
+  $('#drawCanvas').on('mousemove touchmove', function(e){ if(!drawing) return; const p = getPos(e.originalEvent||e); drawLine(lastPos,p); lastPos=p; });
+  $(window).on('mouseup touchend', function(){ drawing=false; lastPos=null; });
+});
+</script>
+</body>
+</html>
