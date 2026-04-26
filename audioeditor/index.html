@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SonicWave Player</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- WaveSurfer.js -->
+    <script src="https://unpkg.com/wavesurfer.js@7.7.3/dist/wavesurfer.min.js"></script>
+    
+    <!-- Lucide Icons (For sidebar/generic icons) -->
+    <script src="https://unpkg.com/lucide@0.263.1"></script>
+
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+        
+        .custom-scroll::-webkit-scrollbar { width: 8px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #1e293b; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+        .modal-overlay {
+            background-color: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo, Component } = React;
+
+        // --- Hardcoded SVGs for Critical Controls ---
+        const SVG_ICONS = {
+            play: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>,
+            pause: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>,
+            next: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>,
+            prev: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5"></line></svg>,
+            shuffle: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line></svg>,
+            repeat: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m17 2 4 4-4 4"></path><path d="M3 11v-1a4 4 0 0 1 4-4h14"></path><path d="m7 22-4-4 4-4"></path><path d="M21 13v1a4 4 0 0 1-4 4H3"></path></svg>,
+            volumeOn: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>,
+            volumeOff: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>,
+            plus: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>,
+            x: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
+            check: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>,
+            trash: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        };
+
+        // --- Error Boundary ---
+        class ErrorBoundary extends Component {
+            constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+            static getDerivedStateFromError(error) { return { hasError: true, error }; }
+            handleReset = () => { localStorage.removeItem('sonicwave_playlists'); window.location.reload(); }
+            render() {
+                if (this.state.hasError) return (
+                    <div className="flex flex-col items-center justify-center h-screen bg-slate-900 text-white p-6 text-center">
+                        <h1 className="text-3xl font-bold mb-4 text-red-400">Something went wrong.</h1>
+                        <button onClick={this.handleReset} className="px-6 py-3 bg-emerald-500 rounded-lg font-bold">Reset App</button>
+                    </div>
+                );
+                return this.props.children;
+            }
+        }
+
+        // --- Dynamic Icon Component ---
+        const Icon = ({ name, size = 20, className, onClick }) => {
+            const [svgHtml, setSvgHtml] = useState('');
+            useEffect(() => {
+                const loadIcon = () => {
+                    if (window.lucide && window.lucide.icons) {
+                        const pascalName = name.replace(/(^\w|-\w)/g, (c) => c.replace('-','').toUpperCase());
+                        const iconDef = window.lucide.icons[pascalName];
+                        if (iconDef) setSvgHtml(iconDef.toSvg({ width: size, height: size, 'stroke-width': 2 }));
+                    }
+                };
+                loadIcon();
+                setTimeout(loadIcon, 500); 
+            }, [name, size]);
+
+            if (!svgHtml) return <span style={{width: size, height: size}} className={`inline-block ${className || ''}`} />;
+            return <span onClick={onClick} className={`inline-flex items-center justify-center ${className || ''}`} style={{ width: size, height: size }} dangerouslySetInnerHTML={{__html: svgHtml}} />;
+        };
+
+        const App = () => {
+            // -- Library State --
+            const [allTracks, setAllTracks] = useState([]); 
+            const [playlists, setPlaylists] = useState([]); 
+            const [currentViewId, setCurrentViewId] = useState('all'); 
+            const [filterTerm, setFilterTerm] = useState("");
+            
+            // -- Playback State (Queue) --
+            const [queue, setQueue] = useState([]); 
+            const [currentQueueIndex, setCurrentQueueIndex] = useState(-1);
+            
+            // -- Player Controls State --
+            const [isPlaying, setIsPlaying] = useState(false);
+            const [volume, setVolume] = useState(0.5);
+            const [currentTime, setCurrentTime] = useState(0);
+            const [duration, setDuration] = useState(0);
+            const [isShuffle, setIsShuffle] = useState(false);
+
+            // -- UI State --
+            const [showNewPlaylistInput, setShowNewPlaylistInput] = useState(false);
+            const [newPlaylistName, setNewPlaylistName] = useState("");
+            const [trackToAddToPlaylist, setTrackToAddToPlaylist] = useState(null); 
+
+            // -- Refs --
+            const waveformRef = useRef(null);
+            const wavesurferRef = useRef(null);
+            const fileInputRef = useRef(null);
+
+            // -- Load/Save Playlists --
+            useEffect(() => {
+                try {
+                    const saved = localStorage.getItem('sonicwave_playlists');
+                    if (saved) setPlaylists(JSON.parse(saved));
+                } catch (e) { console.error(e); }
+            }, []);
+
+            useEffect(() => {
+                try { localStorage.setItem('sonicwave_playlists', JSON.stringify(playlists)); } catch(e){}
+            }, [playlists]);
+
+            // -- Computed: Visible Tracks in Library View --
+            const visibleTracks = useMemo(() => {
+                let tracks = [];
+                if (currentViewId === 'all') {
+                    tracks = allTracks;
+                } else {
+                    const pl = playlists.find(p => p.id === currentViewId);
+                    if (pl && Array.isArray(pl.songNames)) {
+                        tracks = allTracks.filter(t => pl.songNames.includes(t.name));
+                    }
+                }
+                if (filterTerm) return tracks.filter(t => t.name.toLowerCase().includes(filterTerm.toLowerCase()));
+                return tracks;
+            }, [allTracks, playlists, currentViewId, filterTerm]);
+
+            // -- Computed: Current Playing Track --
+            const currentTrack = useMemo(() => {
+                if (currentQueueIndex >= 0 && currentQueueIndex < queue.length) {
+                    return queue[currentQueueIndex];
+                }
+                return null;
+            }, [currentQueueIndex, queue]);
+
+            // -- WaveSurfer Init --
+            useEffect(() => {
+                if (waveformRef.current && !wavesurferRef.current) {
+                    wavesurferRef.current = WaveSurfer.create({
+                        container: waveformRef.current,
+                        waveColor: '#4b5563',
+                        progressColor: '#10b981', 
+                        cursorColor: '#34d399',
+                        barWidth: 2,
+                        barGap: 3,
+                        barRadius: 3,
+                        height: 128,
+                        responsive: true,
+                        normalize: true,
+                        backend: 'WebAudio',
+                    });
+
+                    wavesurferRef.current.on('finish', () => {
+                         const duration = wavesurferRef.current.getDuration();
+                         const current = wavesurferRef.current.getCurrentTime();
+                         if (duration > 0 && Math.abs(duration - current) < 1) {
+                            playNextRef.current(); 
+                         }
+                    });
+                    
+                    wavesurferRef.current.on('ready', () => {
+                        setDuration(wavesurferRef.current.getDuration());
+                        wavesurferRef.current.play();
+                        setIsPlaying(true);
+                    });
+                    wavesurferRef.current.on('audioprocess', t => setCurrentTime(t));
+                    wavesurferRef.current.on('seek', p => setCurrentTime(p * wavesurferRef.current.getDuration()));
+                    wavesurferRef.current.setVolume(volume);
+                }
+                return () => wavesurferRef.current?.destroy();
+            }, []);
+
+            // -- Load Track Effect --
+            useEffect(() => {
+                if (currentTrack && wavesurferRef.current && currentTrack.file) {
+                    wavesurferRef.current.stop();
+                    wavesurferRef.current.empty();
+                    
+                    const objectUrl = URL.createObjectURL(currentTrack.file);
+                    wavesurferRef.current.load(objectUrl);
+                    return () => URL.revokeObjectURL(objectUrl);
+                }
+            }, [currentTrack?.id]); 
+
+            // -- Playback Logic --
+            const playTrackFromList = (track, index) => {
+                const newQueue = [...visibleTracks];
+                setQueue(newQueue);
+                
+                const correctIndex = newQueue.findIndex(t => t.id === track.id);
+                const targetIndex = correctIndex !== -1 ? correctIndex : index;
+                
+                setCurrentQueueIndex(targetIndex);
+                setIsPlaying(true);
+            };
+
+            const togglePlayPause = () => {
+                if (wavesurferRef.current) {
+                    wavesurferRef.current.playPause();
+                    setIsPlaying(!isPlaying);
+                }
+            };
+
+            const playNext = () => {
+                if (queue.length === 0) return;
+                let nextIndex;
+                if (isShuffle) {
+                    nextIndex = Math.floor(Math.random() * queue.length);
+                } else {
+                    nextIndex = (currentQueueIndex + 1) % queue.length;
+                }
+                setCurrentQueueIndex(nextIndex);
+            };
+            const playNextRef = useRef(playNext);
+            useEffect(() => { playNextRef.current = playNext; });
+
+            const playPrev = () => {
+                if (queue.length === 0) return;
+                if (currentTime > 3 && wavesurferRef.current) {
+                    wavesurferRef.current.seekTo(0);
+                    return;
+                }
+                let prevIndex = (currentQueueIndex - 1 + queue.length) % queue.length;
+                setCurrentQueueIndex(prevIndex);
+            };
+
+            // -- File Handling --
+            const handleFolderSelect = (event) => {
+                const files = Array.from(event.target.files);
+                const supportedExtensions = ['.mp3', '.flac', '.wav'];
+                const newTracks = files
+                    .filter(file => supportedExtensions.some(ext => file.name.toLowerCase().endsWith(ext)))
+                    .map(file => ({
+                        id: crypto.randomUUID(),
+                        name: file.name.replace(/\.[^/.]+$/, ""),
+                        type: file.name.split('.').pop().toUpperCase(),
+                        file: file
+                    }));
+
+                if (newTracks.length > 0) {
+                    setAllTracks(prev => {
+                        const existingNames = new Set(prev.map(t => t.name));
+                        const uniqueNew = newTracks.filter(t => !existingNames.has(t.name));
+                        return [...prev, ...uniqueNew];
+                    });
+                    
+                    if (queue.length === 0) {
+                        setQueue(newTracks);
+                    }
+                } else {
+                    alert("No supported audio files found.");
+                }
+            };
+
+            // -- Playlist Management --
+            const createPlaylist = () => {
+                if (!newPlaylistName.trim()) return;
+                const newPl = { id: crypto.randomUUID(), name: newPlaylistName, songNames: [] };
+                setPlaylists([...playlists, newPl]);
+                setNewPlaylistName("");
+                setShowNewPlaylistInput(false);
+            };
+
+            const addToPlaylist = (playlistId, trackName) => {
+                setPlaylists(prev => prev.map(pl => {
+                    if (pl.id === playlistId && !pl.songNames.includes(trackName)) {
+                        return { ...pl, songNames: [...pl.songNames, trackName] };
+                    }
+                    return pl;
+                }));
+                setTrackToAddToPlaylist(null); 
+            };
+
+            const removeFromPlaylist = (e, playlistId, trackName) => {
+                e.stopPropagation();
+                setPlaylists(prev => prev.map(pl => {
+                    if (pl.id === playlistId) return { ...pl, songNames: pl.songNames.filter(n => n !== trackName) };
+                    return pl;
+                }));
+            };
+
+            const deletePlaylist = (e, id) => {
+                e.stopPropagation();
+                if(confirm("Delete this playlist?")) {
+                    setPlaylists(prev => prev.filter(p => p.id !== id));
+                    if (currentViewId === id) setCurrentViewId('all');
+                }
+            };
+
+            const formatTime = (seconds) => {
+                if (!seconds || isNaN(seconds)) return "0:00";
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+            };
+
+            return (
+                <div className="flex h-screen w-full bg-slate-900 text-slate-100">
+                    
+                    {/* --- Sidebar --- */}
+                    <div className="w-64 flex-shrink-0 flex flex-col border-r border-slate-700 bg-slate-900/50">
+                        <div className="p-6">
+                            <h1 className="text-xl font-bold flex items-center gap-2 text-emerald-400">
+                                <Icon name="music" className="text-emerald-400" /> SonicWave
+                            </h1>
+                        </div>
+                        <div className="flex-1 overflow-y-auto custom-scroll px-3">
+                            <div className="mb-6">
+                                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-3">Library</h3>
+                                <button onClick={() => setCurrentViewId('all')} className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${currentViewId === 'all' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'}`}>
+                                    <Icon name="library" size={16} /> All Tracks
+                                </button>
+                                <button onClick={() => fileInputRef.current.click()} className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-emerald-400 hover:bg-emerald-500/10 mt-1 transition-colors">
+                                    <Icon name="folder-plus" size={16} /> Scan Folder
+                                </button>
+                                <input type="file" ref={fileInputRef} onChange={handleFolderSelect} webkitdirectory="true" directory="true" multiple className="hidden" />
+                            </div>
+                            
+                            {/* --- Playlist Section with Button --- */}
+                            <div>
+                                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-3">Playlists</h3>
+                                
+                                <button 
+                                    onClick={() => { setShowNewPlaylistInput(true); setNewPlaylistName(""); }} 
+                                    className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-400 hover:bg-slate-800 hover:text-emerald-400 transition-colors mb-1"
+                                >
+                                    <Icon name="plus-circle" size={16} />
+                                    <span>Create Playlist</span>
+                                </button>
+
+                                {showNewPlaylistInput && (
+                                    <div className="px-3 mb-2 flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
+                                        <input 
+                                            autoFocus
+                                            type="text" 
+                                            placeholder="Name..."
+                                            className="flex-1 min-w-0 bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm focus:border-emerald-500 focus:outline-none text-white"
+                                            value={newPlaylistName}
+                                            onChange={e => setNewPlaylistName(e.target.value)}
+                                            onKeyDown={e => {
+                                                if (e.key === 'Enter') createPlaylist();
+                                                if (e.key === 'Escape') setShowNewPlaylistInput(false);
+                                            }}
+                                        />
+                                        <button onClick={createPlaylist} className="text-emerald-400 hover:text-emerald-300 w-4 h-4">{SVG_ICONS.check}</button>
+                                        <button onClick={() => setShowNewPlaylistInput(false)} className="text-red-400 hover:text-red-300 w-4 h-4">{SVG_ICONS.x}</button>
+                                    </div>
+                                )}
+
+                                <div className="space-y-0.5 mt-2">
+                                    {playlists.map(pl => (
+                                        <div key={pl.id} onClick={() => setCurrentViewId(pl.id)} className={`group w-full flex items-center justify-between px-3 py-2 rounded-md text-sm cursor-pointer transition-colors ${currentViewId === pl.id ? 'bg-slate-800 text-white' : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'}`}>
+                                            <div className="flex items-center gap-3 truncate">
+                                                <Icon name="list-music" size={16} /> <span className="truncate">{pl.name}</span>
+                                            </div>
+                                            <button onClick={(e) => deletePlaylist(e, pl.id)} className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 p-1 w-5 h-5">{SVG_ICONS.trash}</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* --- Main Area --- */}
+                    <div className="flex-1 flex flex-col bg-slate-900 relative">
+                        <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm z-10">
+                             <div className="flex flex-col">
+                                <h2 className="text-lg font-bold text-white">{currentViewId === 'all' ? 'All Tracks' : playlists.find(p => p.id === currentViewId)?.name || 'Playlist'}</h2>
+                                <span className="text-xs text-slate-500">{visibleTracks.length} Songs {allTracks.length === 0 && " (Scan folder to start)"}</span>
+                             </div>
+                             <div className="relative">
+                                <Icon name="search" size={16} className="absolute left-3 top-2.5 text-slate-500" />
+                                <input type="text" placeholder="Search..." value={filterTerm} onChange={(e) => setFilterTerm(e.target.value)} className="bg-slate-800 border border-slate-700 rounded-full py-2 pl-9 pr-4 text-sm w-64 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all" />
+                             </div>
+                        </div>
+
+                        {/* Track List */}
+                        <div className="flex-1 overflow-y-auto custom-scroll p-6">
+                            {visibleTracks.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-full text-slate-500 opacity-60">
+                                    <Icon name="music" size={48} className="mb-4" />
+                                    <p>No tracks found here.</p>
+                                </div>
+                            ) : (
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="text-xs text-slate-500 border-b border-slate-800">
+                                            <th className="py-3 pl-4 font-medium w-12">#</th>
+                                            <th className="py-3 font-medium">Title</th>
+                                            <th className="py-3 font-medium w-24">Type</th>
+                                            <th className="py-3 pr-4 font-medium w-20 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="text-sm">
+                                        {visibleTracks.map((track, idx) => {
+                                            const isActive = track.id === currentTrack?.id;
+                                            return (
+                                                <tr key={track.id} onClick={() => playTrackFromList(track, idx)} className={`group border-b border-slate-800/50 hover:bg-slate-800/40 transition-colors cursor-pointer ${isActive ? 'bg-emerald-500/5' : ''}`}>
+                                                    <td className="py-3 pl-4 text-slate-500 group-hover:text-white w-12">
+                                                        {isActive && isPlaying ? (
+                                                            <div className="flex gap-0.5 items-end h-3">
+                                                                <div className="w-0.5 bg-emerald-400 h-2 animate-pulse"></div>
+                                                                <div className="w-0.5 bg-emerald-400 h-3 animate-pulse" style={{animationDelay:'0.1s'}}></div>
+                                                                <div className="w-0.5 bg-emerald-400 h-1 animate-pulse" style={{animationDelay:'0.2s'}}></div>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="group-hover:hidden">{idx + 1}</span>
+                                                        )}
+                                                        <span className="hidden group-hover:block w-3 h-3 text-emerald-400">{SVG_ICONS.play}</span>
+                                                    </td>
+                                                    <td className={`py-3 font-medium ${isActive ? 'text-emerald-400' : 'text-slate-200'}`}>{track.name}</td>
+                                                    <td className="py-3 text-slate-500 text-xs"><span className="border border-slate-700 rounded px-1.5 py-0.5">{track.type}</span></td>
+                                                    <td className="py-3 pr-4 text-right">
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <button onClick={(e) => { e.stopPropagation(); setTrackToAddToPlaylist(track); }} className="p-1.5 text-slate-500 hover:text-emerald-400 hover:bg-emerald-400/10 rounded transition opacity-0 group-hover:opacity-100" title="Add to Playlist"><span className="w-4 h-4 block">{SVG_ICONS.plus}</span></button>
+                                                            {currentViewId !== 'all' && (
+                                                                <button onClick={(e) => removeFromPlaylist(e, currentViewId, track.name)} className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded transition opacity-0 group-hover:opacity-100" title="Remove from Playlist"><span className="w-4 h-4 block">{SVG_ICONS.x}</span></button>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+
+                        {/* Player Bar (Bottom) */}
+                        <div className="h-28 bg-slate-950 border-t border-slate-800 grid grid-cols-3 items-center px-6 z-20 shadow-2xl">
+                            <div className="flex items-center gap-4 overflow-hidden">
+                                {currentTrack ? (
+                                    <>
+                                        <div className="w-14 h-14 bg-slate-800 rounded-md flex items-center justify-center border border-slate-700 flex-shrink-0">
+                                            <Icon name="music-2" size={24} className="text-emerald-500" />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <h4 className="font-bold text-white truncate text-sm">{currentTrack.name}</h4>
+                                            <p className="text-xs text-slate-500">{currentTrack.type} • {currentQueueIndex + 1} of {queue.length}</p>
+                                        </div>
+                                    </>
+                                ) : ( <div className="text-slate-600 text-sm">Select a track to play</div> )}
+                            </div>
+
+                            <div className="flex flex-col items-center justify-center gap-2 w-full">
+                                <div className="flex items-center gap-6">
+                                    <button onClick={() => setIsShuffle(!isShuffle)} className={`w-5 h-5 ${isShuffle ? 'text-emerald-400' : 'text-slate-500 hover:text-white'}`}>{SVG_ICONS.shuffle}</button>
+                                    <button onClick={playPrev} className="w-6 h-6 text-slate-300 hover:text-white transition hover:scale-110">{SVG_ICONS.prev}</button>
+                                    
+                                    <button onClick={togglePlayPause} className="w-12 h-12 rounded-full bg-white hover:bg-emerald-400 text-slate-900 flex items-center justify-center transition hover:scale-105 p-3">
+                                        {isPlaying ? SVG_ICONS.pause : SVG_ICONS.play}
+                                    </button>
+                                    
+                                    <button id="btn-next" onClick={playNext} className="w-6 h-6 text-slate-300 hover:text-white transition hover:scale-110">{SVG_ICONS.next}</button>
+                                    <button className="w-5 h-5 text-slate-500 hover:text-white disabled:opacity-30">{SVG_ICONS.repeat}</button>
+                                </div>
+                                
+                                <div className="w-full flex items-center gap-3 text-xs font-mono text-slate-500">
+                                    <span>{formatTime(currentTime)}</span>
+                                    <div id="waveform" ref={waveformRef} className="flex-1 h-8 bg-slate-900/50 rounded overflow-hidden cursor-pointer relative opacity-80 hover:opacity-100 transition-opacity"></div>
+                                    <span>{formatTime(duration)}</span>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-end gap-3">
+                                <span className="w-5 h-5 text-slate-400">{volume === 0 ? SVG_ICONS.volumeOff : SVG_ICONS.volumeOn}</span>
+                                <input type="range" min="0" max="1" step="0.01" value={volume} onChange={(e) => { const v = parseFloat(e.target.value); setVolume(v); wavesurferRef.current?.setVolume(v); }} className="w-24 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500 hover:accent-emerald-400" />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* --- Add to Playlist Modal --- */}
+                    {trackToAddToPlaylist && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center modal-overlay" onClick={() => setTrackToAddToPlaylist(null)}>
+                            <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-80 shadow-2xl animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                                <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-white">Add to Playlist</h3><button onClick={() => setTrackToAddToPlaylist(null)} className="text-slate-500 hover:text-white w-5 h-5">{SVG_ICONS.x}</button></div>
+                                <p className="text-sm text-slate-400 mb-4 truncate">Track: <span className="text-emerald-400">{trackToAddToPlaylist.name}</span></p>
+                                <div className="max-h-60 overflow-y-auto space-y-1 custom-scroll">
+                                    {playlists.length === 0 ? <p className="text-center text-xs text-slate-500 py-4">No playlists yet.</p> : playlists.map(pl => {
+                                        const hasTrack = pl.songNames.includes(trackToAddToPlaylist.name);
+                                        return (
+                                            <button key={pl.id} onClick={() => addToPlaylist(pl.id, trackToAddToPlaylist.name)} disabled={hasTrack} className={`w-full text-left px-3 py-2 rounded flex items-center justify-between text-sm ${hasTrack ? 'bg-slate-800 text-slate-500 cursor-default' : 'hover:bg-emerald-500/20 hover:text-emerald-400 text-slate-300'}`}>
+                                                <span>{pl.name}</span> {hasTrack && <span className="w-4 h-4">{SVG_ICONS.check}</span>}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<ErrorBoundary><App /></ErrorBoundary>);
+    </script>
+</body>
+</html>
